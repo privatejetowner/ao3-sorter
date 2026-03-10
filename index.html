@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AO3 Reading List</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f4f0;
+    --card: #fffffe;
+    --text: #2a2520;
+    --dim: #8a8580;
+    --accent: #c45d3e;
+    --accent-soft: rgba(196,93,62,0.08);
+    --border: #e8e4df;
+    --shadow: 0 1px 4px rgba(0,0,0,0.03), 0 6px 20px rgba(0,0,0,0.04);
+    --shadow-hover: 0 4px 12px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Serif SC', 'Songti SC', serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.7;
+  }
+
+  .page {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 60px 24px 100px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+
+  .header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    margin-bottom: 10px;
+  }
+
+  .header p {
+    color: var(--dim);
+    font-size: 14px;
+  }
+
+  .tag-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .tag-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 28px;
+    text-decoration: none;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tag-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .tag-card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+    border-color: transparent;
+  }
+
+  .tag-card:hover::before {
+    opacity: 1;
+  }
+
+  .tag-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tag-name {
+    font-size: 19px;
+    font-weight: 600;
+  }
+
+  .tag-card:hover .tag-name {
+    color: var(--accent);
+  }
+
+  .tag-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--dim);
+  }
+
+  .tag-arrow {
+    font-size: 20px;
+    color: var(--dim);
+    transition: transform 0.3s, color 0.3s;
+  }
+
+  .tag-card:hover .tag-arrow {
+    transform: translateX(4px);
+    color: var(--accent);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--dim);
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--dim);
+  }
+
+  .footer a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  /* Staggered entrance */
+  .tag-card {
+    opacity: 0;
+    animation: fadeSlideIn 0.4s ease forwards;
+  }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 500px) {
+    .page { padding: 40px 16px 80px; }
+    .header h1 { font-size: 26px; }
+    .tag-card { padding: 18px 20px; }
+    .tag-name { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <h1>📖 AO3 Reading List</h1>
+    <p>按 Kudos/Hits 比排序 · 挑好文不踩雷</p>
+  </div>
+
+  <div class="tag-grid" id="tagGrid"></div>
+
+  <div class="footer">
+    数据来自 <a href="https://archiveofourown.org" target="_blank">Archive of Our Own</a>
+  </div>
+</div>
+
+<script>
+const grid = document.getElementById('tagGrid');
+
+// 从 tags.json 自动加载（由 update.bat 生成）
+fetch('tags.json')
+  .then(r => r.json())
+  .then(tags => {
+    if (!tags || tags.length === 0) {
+      grid.innerHTML = '<div class="empty-state">还没有添加任何 tag<br>运行 update.bat 生成数据</div>';
+      return;
+    }
+    grid.innerHTML = tags.map((tag, i) => `
+      <a class="tag-card" href="${tag.file}" style="animation-delay: ${i * 0.06}s">
+        <div class="tag-info">
+          <span class="tag-name">${tag.name}</span>
+          <span class="tag-meta">${tag.count ? tag.count + ' 篇作品' : ''}</span>
+        </div>
+        <span class="tag-arrow">→</span>
+      </a>
+    `).join('');
+  })
+  .catch(() => {
+    grid.innerHTML = '<div class="empty-state">找不到 tags.json<br>请先运行 update.bat</div>';
+  });
+</script>
+</body>
+</html>
