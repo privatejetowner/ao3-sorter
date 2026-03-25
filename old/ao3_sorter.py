@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 AO3 Kudos/Hits Ratio Sorter
 ============================
@@ -12,7 +12,6 @@ AO3 Kudos/Hits Ratio Sorter
 """
 
 from bs4 import BeautifulSoup
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import subprocess
 import time
 import json
@@ -20,7 +19,7 @@ import sys
 import re
 import os
 import webbrowser
-from urllib.parse import quote, urlparse
+from urllib.parse import quote, urljoin, urlparse, parse_qs
 
 # ============================================================
 # 配置区 - 请修改这里
@@ -29,7 +28,7 @@ from urllib.parse import quote, urlparse
 # 把你浏览器里的完整 cookie 字符串粘贴在这里（一整行）
 # 获取方法：浏览器打开AO3 → F12开发者工具 → Network → 刷新页面
 # → 点击任意请求 → Headers → 找到 Cookie: 后面的整串复制过来
-COOKIE_STRING = "view_adult=true"
+COOKIE_STRING = "view_adult=true; _cfuvid=Iro0yk1mzIdi.LYtbe2IUd42lyxis4Vkjk9VSGyDoPo-1773116632.2244139-1.0.1.1-0JkqdTmIs2QmKDnGOW0scuKf_vnul3AtL7Rk.SJmZug; cf_clearance=NF0FY1yt8_N13BEoiCTrMAPHRMNJJaTIeY3hjz0BVvs-1773116655-1.2.1.1-hxcCOSDDY9CT7w5P0uz7O.hBZJtqXkCZ_2QIavT0dgSj4Q1kKXopBMt40ujC9LbpAf6v866ye5clgC_IlP.huShMtFMkS709_Nube67IuSm4eaiD3mGt5wG0Rj96bnUOtp_95PtmYDSZkt4YMRJJfPFyPE3m9X03fS4rC4rHMbWz0sx77GSK7hcHouBYMENVKPn8kGmq03435TB.JlaZ3l3ng4LWvQdVhhp7z7qayyQ; __cf_bm=guigmOfx8.WHAtkPWwzUzj5ei5UPqfrUh0Qiziwdy58-1773116655.781981-1.0.1.1-kOLFppyrH7f91aFIOm.EZofG0neUlmiV3boQEOUS_hmSZoNDNbetgHzZzSItp1LQSKwM0osIV09driG2Us9SMQDGwnoNEOKpu06HlEkWHHx34b4kzsx2VarlKEzHeLtz; _otwarchive_session=eyJfcmFpbHMiOnsibWVzc2FnZSI6ImV5SnpaWE56YVc5dVgybGtJam9pTm1Ga1pHRXhNems0TVdJek16QXhPV1ZqWkRFd01EQTNOV1E1T1Rjek16TWlMQ0pmWTNOeVpsOTBiMnRsYmlJNklrZG5WRVIxYW1ZMVFtOUZaV28wV1V0NFF6ZGhlRmhPTmswNWVFdFJYMk5VTnpKQk1rMHRjSEZvTkdNaWZRPT0iLCJleHAiOiIyMDI2LTAzLTI0VDA0OjI0OjIzLjM0MloiLCJwdXIiOiJjb29raWUuX290d2FyY2hpdmVfc2Vzc2lvbiJ9fQ%3D%3D--005e161c5d5e7c2f1244f3f815eae0a4f6a0ee20"
 # 例如：
 # COOKIE_STRING = "view_adult=true; remember_user_token=xxx; user_credentials=1; _otwarchive_session=xxx; cf_clearance=xxx; __cf_bm=xxx"
 
@@ -40,83 +39,6 @@ REQUEST_DELAY = 1.5
 MAX_RETRIES = 5
 
 # ============================================================
-
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_COOKIE_STRING = "view_adult=true"
-DEFAULT_REQUEST_DELAY = 1.5
-DEFAULT_MAX_RETRIES = 5
-DEFAULT_FETCH_CONCURRENCY = 3
-DEFAULT_CONFIG_PATH = os.path.join(BASE_DIR, "ao3_config.json")
-
-
-def _coerce_float(value, default):
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return default
-
-
-def _coerce_int(value, default):
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
-
-
-def load_runtime_config():
-    """Load config from ao3_config.json and environment variables."""
-    config = {
-        "cookie_string": DEFAULT_COOKIE_STRING,
-        "request_delay": DEFAULT_REQUEST_DELAY,
-        "max_retries": DEFAULT_MAX_RETRIES,
-        "fetch_concurrency": DEFAULT_FETCH_CONCURRENCY,
-        "tag_inputs": [],
-    }
-
-    config_path = os.environ.get("AO3_CONFIG_PATH", DEFAULT_CONFIG_PATH)
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                file_config = json.load(f)
-            if isinstance(file_config, dict):
-                config["cookie_string"] = file_config.get("cookie_string", config["cookie_string"])
-                config["request_delay"] = _coerce_float(
-                    file_config.get("request_delay"), config["request_delay"]
-                )
-                config["max_retries"] = _coerce_int(
-                    file_config.get("max_retries"), config["max_retries"]
-                )
-                config["fetch_concurrency"] = max(
-                    1,
-                    _coerce_int(file_config.get("fetch_concurrency"), config["fetch_concurrency"])
-                )
-                tag_inputs = file_config.get("tag_inputs")
-                if isinstance(tag_inputs, list):
-                    config["tag_inputs"] = [str(item).strip() for item in tag_inputs if str(item).strip()]
-        except (OSError, json.JSONDecodeError) as exc:
-            print(f"Warning: failed to read config file {config_path}: {exc}")
-
-    config["cookie_string"] = os.environ.get("AO3_COOKIE_STRING", config["cookie_string"])
-    config["request_delay"] = _coerce_float(
-        os.environ.get("AO3_REQUEST_DELAY"), config["request_delay"]
-    )
-    config["max_retries"] = _coerce_int(
-        os.environ.get("AO3_MAX_RETRIES"), config["max_retries"]
-    )
-    config["fetch_concurrency"] = max(
-        1,
-        _coerce_int(os.environ.get("AO3_FETCH_CONCURRENCY"), config["fetch_concurrency"])
-    )
-
-    return config
-
-
-RUNTIME_CONFIG = load_runtime_config()
-COOKIE_STRING = RUNTIME_CONFIG["cookie_string"]
-REQUEST_DELAY = RUNTIME_CONFIG["request_delay"]
-MAX_RETRIES = RUNTIME_CONFIG["max_retries"]
-FETCH_CONCURRENCY = RUNTIME_CONFIG["fetch_concurrency"]
 
 
 def build_tag_url(tag_input):
@@ -182,42 +104,6 @@ def fetch_page(url, page=1):
             if attempt < MAX_RETRIES - 1:
                 time.sleep(2)
     return None
-
-
-def fetch_remaining_pages(tag_url, total_pages):
-    """Fetch pages 2..N with small, configurable parallelism."""
-    if total_pages <= 1:
-        return {}, []
-
-    pages = list(range(2, total_pages + 1))
-    page_html_map = {}
-    failed_pages = []
-
-    with ThreadPoolExecutor(max_workers=FETCH_CONCURRENCY) as executor:
-        future_to_page = {}
-        for page in pages:
-            future_to_page[executor.submit(fetch_page, tag_url, page)] = page
-            if REQUEST_DELAY > 0:
-                time.sleep(REQUEST_DELAY)
-
-        for future in as_completed(future_to_page):
-            page = future_to_page[future]
-            print(f"Fetching page {page}/{total_pages}...")
-            try:
-                html = future.result()
-            except Exception as exc:
-                print(f"  Failed to fetch page {page}: {exc}")
-                failed_pages.append(page)
-                continue
-
-            if html:
-                page_html_map[page] = html
-                print(f"  Done page {page}")
-            else:
-                print(f"  Failed page {page}")
-                failed_pages.append(page)
-
-    return page_html_map, failed_pages
 
 
 def get_total_pages(html):
@@ -536,38 +422,6 @@ def generate_html(works, tag_name, output_path):
     color: var(--accent);
   }}
 
-  .kudos-min-wrap {{
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    background: var(--bg-card);
-    font-size: 12px;
-    color: var(--text-dim);
-  }}
-
-  .kudos-min-wrap label {{
-    white-space: nowrap;
-    font-family: var(--font-mono);
-  }}
-
-  .kudos-min-wrap input {{
-    width: 56px;
-    border: none;
-    outline: none;
-    font-family: var(--font-mono);
-    font-size: 13px;
-    color: var(--text);
-    background: transparent;
-    text-align: center;
-  }}
-
-  .kudos-min-wrap:focus-within {{
-    border-color: var(--accent-soft);
-  }}
-
   /* Work cards */
   .work-list {{
     display: flex;
@@ -765,10 +619,6 @@ def generate_html(works, tag_name, output_path):
       <button class="filter-chip" data-filter="complete">仅完结</button>
       <button class="filter-chip" data-filter="long">长篇(>10k)</button>
       <button class="filter-chip" data-filter="short">短篇(<5k)</button>
-      <span class="kudos-min-wrap">
-        <label for="kudosMin">Kudos ≥</label>
-        <input type="number" id="kudosMin" min="0" value="0" step="5">
-      </span>
     </div>
   </div>
 
@@ -826,12 +676,6 @@ function filterAndSort() {{
   }}
   if (activeFilters.has("short")) {{
     works = works.filter(w => w.words < 5000);
-  }}
-
-  // Kudos minimum
-  const kudosMin = parseInt(document.getElementById("kudosMin").value) || 0;
-  if (kudosMin > 0) {{
-    works = works.filter(w => w.kudos >= kudosMin);
   }}
 
   // Sort
@@ -927,10 +771,6 @@ document.getElementById("searchBox").addEventListener("input", (e) => {{
   renderWorks();
 }});
 
-document.getElementById("kudosMin").addEventListener("input", () => {{
-  renderWorks();
-}});
-
 document.getElementById("sortBtns").addEventListener("click", (e) => {{
   const btn = e.target.closest(".sort-btn");
   if (!btn) return;
@@ -980,20 +820,14 @@ def main():
     print()
 
     # 检查 cookie 是否配置
-    if COOKIE_STRING == DEFAULT_COOKIE_STRING:
+    if COOKIE_STRING == "view_adult=true":
         print("⚠️  建议在脚本顶部 COOKIE_STRING 中填入你的完整AO3 cookie")
         print("   包括 cf_clearance 等 Cloudflare cookie 才能正常访问")
         print("   获取方法：浏览器F12 → Network → 复制请求的Cookie头")
         print()
 
-    # 支持命令行参数: python ao3_sorter.py "tag名" [输出目录]
-    if len(sys.argv) >= 2:
-        tag_input = sys.argv[1].strip()
-        output_dir = sys.argv[2].strip() if len(sys.argv) >= 3 else None
-    else:
-        tag_input = input("请输入 AO3 tag名称或完整URL: ").strip()
-        output_dir = None
-
+    # 获取 tag
+    tag_input = input("请输入 AO3 tag名称或完整URL: ").strip()
     if not tag_input:
         print("❌ 未输入任何内容")
         return
@@ -1096,11 +930,7 @@ def main():
     # 生成 HTML
     safe_name = re.sub(r'[^\w\-]', '_', tag_name)
     output_file = f"ao3_sorted_{safe_name}.html"
-    if output_dir:
-        os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, output_file)
-    else:
-        output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), output_file)
+    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), output_file)
 
     generate_html(all_works, tag_name, output_path)
     print(f"\n✨ 已生成: {output_path}")
@@ -1112,152 +942,6 @@ def main():
     except:
         print("🌐 请手动在浏览器中打开上述文件")
 
-def extract_tag_name(tag_input):
-    """Normalize the display name for a tag input or AO3 tag URL."""
-    tag_name = tag_input
-    if tag_input.startswith("http"):
-        path = urlparse(tag_input).path
-        parts = path.split("/tags/")
-        if len(parts) > 1:
-            from urllib.parse import unquote
-            tag_name = unquote(parts[1].split("/")[0])
-    return tag_name
-
-
-def process_page_html(page, html):
-    """Parse one page and report whether it needs retry/debugging."""
-    works = parse_works(html)
-    if len(works) == 0 and len(html) > 500:
-        debug_file = f"debug_page_{page}.html"
-        with open(debug_file, "w", encoding="utf-8") as f:
-            f.write(html)
-        print(f"  Warning: page {page} had content but parsed as 0 works. Saved {debug_file}")
-        return works, True
-
-    print(f"  Parsed page {page}: {len(works)} works")
-    return works, False
-
-
-def main_fast():
-    print("=" * 52)
-    print("  AO3 Kudos/Hits Ratio Sorter")
-    print("=" * 52)
-    print()
-
-    if COOKIE_STRING == DEFAULT_COOKIE_STRING:
-        print("Warning: AO3 cookie is not configured.")
-        print("  Add it via ao3_config.json or the AO3_COOKIE_STRING environment variable.")
-        print()
-
-    configured_tags = RUNTIME_CONFIG.get("tag_inputs", [])
-
-    if len(sys.argv) >= 2:
-        tag_input = sys.argv[1].strip()
-        output_dir = sys.argv[2].strip() if len(sys.argv) >= 3 else None
-    elif configured_tags:
-        tag_input = configured_tags[0]
-        output_dir = None
-        print(f"Using configured tag input: {tag_input}")
-    else:
-        tag_input = input("Enter AO3 tag name or full tag URL: ").strip()
-        output_dir = None
-
-    if not tag_input:
-        print("Error: no tag input provided.")
-        return
-
-    tag_url = build_tag_url(tag_input)
-    tag_name = extract_tag_name(tag_input)
-
-    print(f"\nTag: {tag_name}")
-    print(f"URL: {tag_url}")
-    print()
-
-    print("Fetching page 1...")
-    html = fetch_page(tag_url, page=1)
-    if not html:
-        print("Error: unable to reach AO3. Check your network and cookie configuration.")
-        return
-
-    total_pages = get_total_pages(html)
-    print(f"Total pages: {total_pages}\n")
-
-    all_works, _ = process_page_html(1, html)
-    failed_pages = []
-
-    if total_pages > 1:
-        print(f"Using fetch concurrency: {FETCH_CONCURRENCY}")
-        page_html_map, failed_pages = fetch_remaining_pages(tag_url, total_pages)
-
-        for page in range(2, total_pages + 1):
-            page_html = page_html_map.get(page)
-            if not page_html:
-                continue
-            works, should_retry = process_page_html(page, page_html)
-            if should_retry:
-                failed_pages.append(page)
-            else:
-                all_works.extend(works)
-
-    if failed_pages:
-        retry_pages = sorted(set(failed_pages))
-        print(f"\nRetrying {len(retry_pages)} failed pages...")
-        for page in retry_pages:
-            time.sleep(REQUEST_DELAY + 1)
-            print(f"Retrying page {page}...")
-            html = fetch_page(tag_url, page=page)
-            if not html:
-                print("  Retry failed")
-                continue
-
-            works = parse_works(html)
-            if works:
-                all_works.extend(works)
-                print(f"  Retry succeeded on page {page}: {len(works)} works")
-            else:
-                debug_file = f"debug_page_{page}.html"
-                with open(debug_file, "w", encoding="utf-8") as f:
-                    f.write(html)
-                print(f"  Retry still parsed 0 works. Saved {debug_file}")
-
-    print(f"\nFetched entries before dedupe: {len(all_works)}")
-
-    seen_ids = set()
-    unique_works = []
-    for w in all_works:
-        wid = w.get("work_id", "")
-        if wid and wid in seen_ids:
-            continue
-        if wid:
-            seen_ids.add(wid)
-        unique_works.append(w)
-
-    dupes = len(all_works) - len(unique_works)
-    if dupes > 0:
-        print(f"  Removed duplicates: {dupes}")
-    all_works = unique_works
-
-    print(f"  Final works: {len(all_works)}")
-    with_kudos = len([w for w in all_works if w["kudos"] > 0])
-    print(f"  Works with kudos: {with_kudos}")
-
-    safe_name = re.sub(r'[^\w\-]', '_', tag_name)
-    output_file = f"ao3_sorted_{safe_name}.html"
-    if output_dir:
-        os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, output_file)
-    else:
-        output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), output_file)
-
-    generate_html(all_works, tag_name, output_path)
-    print(f"\nGenerated: {output_path}")
-
-    try:
-        webbrowser.open(f"file://{output_path}")
-        print("Opened in browser")
-    except Exception:
-        print("Open the generated file manually in your browser")
-
 
 if __name__ == "__main__":
-    main_fast()
+    main()

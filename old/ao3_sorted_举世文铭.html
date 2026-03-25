@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AO3 Sorter · 举世文铭</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf8f5;
+    --bg-card: #ffffff;
+    --text: #2c2c2c;
+    --text-dim: #7a7672;
+    --text-light: #a8a4a0;
+    --accent: #c45d3e;
+    --accent-soft: #e8a690;
+    --accent-bg: #fdf0ec;
+    --border: #e8e4df;
+    --border-light: #f0ece8;
+    --green: #4a8c6f;
+    --green-bg: #edf5f0;
+    --blue: #4a7a9b;
+    --blue-bg: #edf3f7;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+    --shadow-hover: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05);
+    --radius: 10px;
+    --font-serif: 'Noto Serif SC', 'Songti SC', serif;
+    --font-mono: 'JetBrains Mono', 'Menlo', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-serif);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* Header */
+  .page-header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+  }
+
+  .page-header h1 span {
+    color: var(--accent);
+  }
+
+  .page-header .subtitle {
+    color: var(--text-dim);
+    font-size: 15px;
+  }
+
+  .page-header .stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-top: 20px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .page-header .stats-bar strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 32px;
+    align-items: center;
+  }
+
+  .search-box {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--font-serif);
+    font-size: 14px;
+    background: var(--bg-card);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box:focus {
+    border-color: var(--accent-soft);
+  }
+
+  .sort-btns {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 3px;
+  }
+
+  .sort-btn {
+    padding: 7px 14px;
+    border: none;
+    background: transparent;
+    border-radius: 7px;
+    font-family: var(--font-serif);
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .sort-btn:hover {
+    color: var(--text);
+  }
+
+  .sort-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .filter-chip {
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-family: var(--font-serif);
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    background: var(--bg-card);
+    transition: all 0.2s;
+  }
+
+  .filter-chip:hover {
+    border-color: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .filter-chip.active {
+    background: var(--accent-bg);
+    border-color: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* Work cards */
+  .work-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .work-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.25s, transform 0.25s;
+    position: relative;
+  }
+
+  .work-card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-1px);
+  }
+
+  .work-card .rank {
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    background: var(--accent);
+    color: white;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 2px 10px;
+    border-radius: 12px;
+  }
+
+  .work-card .rank.top3 {
+    background: linear-gradient(135deg, #c45d3e, #d4845a);
+    font-size: 13px;
+    padding: 3px 12px;
+  }
+
+  .work-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .work-title a {
+    color: var(--text);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .work-title a:hover {
+    color: var(--accent);
+  }
+
+  .work-author {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .work-author a {
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+
+  .work-author a:hover {
+    color: var(--accent);
+  }
+
+  .work-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .work-tags .tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--border-light);
+    color: var(--text-dim);
+  }
+
+  .work-tags .tag.rel {
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+
+  .work-summary {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.8;
+    margin-bottom: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .work-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-light);
+    align-items: center;
+  }
+
+  .work-meta .ratio-badge {
+    background: var(--green-bg);
+    color: var(--green);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 13px;
+  }
+
+  .work-meta .ratio-badge.high {
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+
+  .work-meta .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .work-meta .meta-item .label {
+    color: var(--text-light);
+  }
+
+  .work-meta .meta-item .value {
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .work-date {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 10px;
+  }
+
+  /* No results */
+  .no-results {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+    font-size: 15px;
+  }
+
+  .count-display {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 16px;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .container { padding: 24px 16px 60px; }
+    .page-header h1 { font-size: 22px; }
+    .work-card { padding: 18px; }
+    .work-title { font-size: 16px; }
+    .controls { flex-direction: column; }
+    .page-header .stats-bar { flex-wrap: wrap; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="page-header">
+    <h1>📖 <span>举世文铭</span></h1>
+    <div class="subtitle">按 Kudos/Hits 比排序 · 数据来自 AO3</div>
+    <div class="stats-bar" id="statsBar"></div>
+  </div>
+
+  <div class="controls">
+    <input type="text" class="search-box" id="searchBox"
+           placeholder="搜索标题、作者、标签、简介…">
+    <div class="sort-btns" id="sortBtns">
+      <button class="sort-btn active" data-sort="ratio">比率 ↓</button>
+      <button class="sort-btn" data-sort="kudos">Kudos ↓</button>
+      <button class="sort-btn" data-sort="hits">Hits ↓</button>
+      <button class="sort-btn" data-sort="words">字数 ↓</button>
+      <button class="sort-btn" data-sort="date">最新</button>
+    </div>
+    <div class="filter-row" id="filterRow">
+      <button class="filter-chip" data-filter="complete">仅完结</button>
+      <button class="filter-chip" data-filter="long">长篇(>10k)</button>
+      <button class="filter-chip" data-filter="short">短篇(<5k)</button>
+    </div>
+  </div>
+
+  <div class="count-display" id="countDisplay"></div>
+  <div class="work-list" id="workList"></div>
+</div>
+
+<script>
+const ALL_WORKS = [{"work_id": "70961476", "title": "【文铭文】失控贝斯/你的贝斯声在我的耳返里", "url": "https://archiveofourown.org/works/70961476", "author": "Jupiter_n", "author_url": "https://archiveofourown.org/users/Jupiter_n/pseuds/Jupiter_n", "fandoms": ["TF家族", "文铭文"], "date": "17 Sep 2025", "rating": "General Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["陈浚铭/杨博文", "杨博文/陈浚铭", "张桂源/张函瑞", "举世文铭", "铭文", "桂瑞"], "characters": ["陈浚铭", "杨博文", "张桂源", "张函瑞", "tf四代 - Character"], "freeforms": [], "summary": "*一发完的清水哥狗文（我不是你最喜欢的弟弟吗）*微量桂瑞*灵感来源dy十里鸣蝉杨博文站在键盘前，熟练按动琴键，耳返里传来的却不是键盘声。取而代之的，是陈浚铭的贝斯声。", "words": 3795, "chapters": "1/1", "kudos": 34, "hits": 818, "bookmarks": 2, "comments": 4, "ratio": 4.16}, {"work_id": "72362551", "title": "【文铭】毒苹果", "url": "https://archiveofourown.org/works/72362551", "author": "Endlessssy", "author_url": "https://archiveofourown.org/users/Endlessssy/pseuds/Endlessssy", "fandoms": ["文铭 - Fandom", "TF家族"], "date": "12 Oct 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["文铭", "文铭文 - Relationship", "举世文铭"], "characters": ["杨博文/陈浚铭 - Character", "杨博文", "陈浚铭"], "freeforms": ["纯爱", "现背"], "summary": "“他像是引诱天真无邪的天使坠入深渊的恶灵，将裹着糖浆的砒霜一勺勺喂下，纵容毒蛊渗透进他的血液，连带着心脏都刻上属于他的烙印。他诱人而不自知，吃下毒苹果的那一刻开始沦陷，心绪被眼前的哥哥勾走。”钓系绿茶1*纯情小狗0其实是纯爱故事一则…伪现背 ooc预警 正文完", "words": 6243, "chapters": "3/3", "kudos": 179, "hits": 2118, "bookmarks": 3, "comments": 17, "ratio": 8.45}, {"work_id": "72925436", "title": "【文铭文】做个好梦吧", "url": "https://archiveofourown.org/works/72925436", "author": "Jupiter_n", "author_url": "https://archiveofourown.org/users/Jupiter_n/pseuds/Jupiter_n", "fandoms": ["TF家族", "文铭文", "铭文 - 粉丝"], "date": "22 Oct 2025", "rating": "General Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["陈浚铭/杨博文", "杨博文/陈浚铭", "举世文铭", "铭文", "文铭"], "characters": ["陈浚铭", "杨博文", "张桂源", "张函瑞", "tf-四代"], "freeforms": [], "summary": "*现背 有微量同事*文铭文 偏铭文有私设空气渐渐散开，门缝透来的光倾斜着映在杨博文的脸上。他懒洋洋地发出微弱的声音“我失眠了。”", "words": 2892, "chapters": "1/1", "kudos": 24, "hits": 756, "bookmarks": 1, "comments": 1, "ratio": 3.17}, {"work_id": "73205456", "title": "【杨all】Lucky Rambo/幸运博文", "url": "https://archiveofourown.org/works/73205456", "author": "Damitajo", "author_url": "https://archiveofourown.org/users/Damitajo/pseuds/Damitajo", "fandoms": ["TF family"], "date": "27 Oct 2025", "rating": "Not Rated", "category": "F/F", "complete": "Complete Work", "relationships": ["杨博文/张桂源", "杨博文/陈浚铭", "杨桂", "举世文铭"], "characters": ["杨博文", "张桂源", "陈浚铭"], "freeforms": [], "summary": "杨博文遭受了一个诅咒，每个和他约会的人都会找到真爱，而他永无真爱。", "words": 1819, "chapters": "1/1", "kudos": 12, "hits": 485, "bookmarks": 0, "comments": 0, "ratio": 2.47}, {"work_id": "73388831", "title": "被狗亲了怎么办", "url": "https://archiveofourown.org/works/73388831", "author": "CamouflagedCauliflower", "author_url": "https://archiveofourown.org/users/CamouflagedCauliflower/pseuds/CamouflagedCauliflower", "fandoms": ["TF家族", "TF四代", "TFBOYS (Band)"], "date": "30 Oct 2025", "rating": "General Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["文铭", "举世文铭"], "characters": ["陈浚铭", "杨博文"], "freeforms": [], "summary": "", "words": 2067, "chapters": "1/1", "kudos": 28, "hits": 695, "bookmarks": 0, "comments": 7, "ratio": 4.03}, {"work_id": "74179161", "title": "他不懂", "url": "https://archiveofourown.org/works/74179161", "author": "S123", "author_url": "https://archiveofourown.org/users/S123/pseuds/S123", "fandoms": ["all杨博文"], "date": "14 Nov 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["奇文", "铭文", "举世文铭", "文铭"], "characters": ["杨博文", "陈浚铭", "左奇函"], "freeforms": [], "summary": "铭文 奇文 三观不正现背‘在爱情里每个人都很卑劣’", "words": 5306, "chapters": "1/1", "kudos": 19, "hits": 1015, "bookmarks": 0, "comments": 4, "ratio": 1.87}, {"work_id": "75171826", "title": "【TF四代】症候群", "url": "https://archiveofourown.org/works/75171826", "author": "shuitouhelewodewahaha", "author_url": "https://archiveofourown.org/users/shuitouhelewodewahaha/pseuds/shuitouhelewodewahaha", "fandoms": ["TF家族四代", "橹穆", "奇文 - Fandom", "桂瑞 - Fandom", "橹瑞 - Fandom"], "date": "18 Jan 2026", "rating": "Not Rated", "category": "M/M", "complete": "Work in Progress", "relationships": ["桂瑞", "奇文", "橹瑞", "举世文铭", "橹穆 - Relationship", "豪丞", "奇奕 - Relationship"], "characters": ["张桂源", "张函瑞", "左奇函", "杨博文", "王橹杰", "穆祉丞", "张峻豪", "张奕然", "陈浚铭"], "freeforms": ["多人 - Freeform"], "summary": "*多人关系 大乱炖 多CP*ooc警告 全员不单纯警告 CP洁癖误入 动手警告 SM警告*架空现背 私设住一栋宿舍楼（别代入别代入别代入）桂瑞/复函/奇文/举世文铭/奇奕/橹瑞/橹穆/豪丞...（看我心情）在医学上，“症候群”（Syndrome）指的是一组特定的、同时出现的症状和体征，它们共同表征着某种疾病或异常状态。练习生在高压、封闭环境下，充满真心与假意、控制与猜忌、占有与伤害的情感纠葛，因此所滋生的一种复杂、扭曲、具有传染性且难以摆脱的情感生态。故事中的每个人既是这种病态关系的患者，也是传染源，共同陷入了一种无法挣脱的、集体失序的情感状态。", "words": 20243, "chapters": "4/?", "kudos": 74, "hits": 2818, "bookmarks": 5, "comments": 16, "ratio": 2.63}, {"work_id": "75446001", "title": "皂香", "url": "https://archiveofourown.org/works/75446001", "author": "Yukiyesido", "author_url": "https://archiveofourown.org/users/Yukiyesido/pseuds/Yukiyesido", "fandoms": ["TFBOYS (Band)", "TF家族"], "date": "08 Dec 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["举世文铭", "杨博文/陈浚铭", "文铭文 - Relationship"], "characters": ["杨博文", "陈浚铭", "陈思罕"], "freeforms": [], "summary": "举世文铭/左右无差时间线混乱 ooc 看物料的激情产出 乱编占比非常大 婉拒小警察些许罕提及以上介意勿入", "words": 3163, "chapters": "3/3", "kudos": 7, "hits": 353, "bookmarks": 0, "comments": 0, "ratio": 1.98}, {"work_id": "77667416", "title": "和前夫哥跳的尽兴吗", "url": "https://archiveofourown.org/works/77667416", "author": "ysbjfyf", "author_url": "https://archiveofourown.org/users/ysbjfyf/pseuds/ysbjfyf", "fandoms": ["时代峰峻"], "date": "14 Jan 2026", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["举世文铭", "铭文", "文铭", "文铭文 - Relationship"], "characters": ["陈浚铭", "杨博文"], "freeforms": [], "summary": "清水文建设一些暖胃小狗以及哥感很重的大杨哥", "words": 1479, "chapters": "1/1", "kudos": 5, "hits": 255, "bookmarks": 0, "comments": 2, "ratio": 1.96}, {"work_id": "77723311", "title": "小妈", "url": "https://archiveofourown.org/works/77723311", "author": "ysbjfyf", "author_url": "https://archiveofourown.org/users/ysbjfyf/pseuds/ysbjfyf", "fandoms": ["时代峰峻"], "date": "16 Jan 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["铭文", "举世文铭"], "characters": ["陈浚铭杨博文 - Character"], "freeforms": [], "summary": "第二页是肉如果不想吃剧情🉑直接跳第二页(^.^)预警：女仆装，口交，射尿，内射，失禁，玩具，一丢丢dirty talk（此女也不知道算不算）设定小铭要比小杨高一点（＾_＾）", "words": 4989, "chapters": "2/2", "kudos": 14, "hits": 701, "bookmarks": 0, "comments": 0, "ratio": 2.0}, {"work_id": "77805586", "title": "外调通知", "url": "https://archiveofourown.org/works/77805586", "author": "Forsythia688", "author_url": "https://archiveofourown.org/users/Forsythia688/pseuds/Forsythia688", "fandoms": ["时代峰峻", "TF家族"], "date": "17 Jan 2026", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["陈浚铭/杨博文", "举世文铭"], "characters": ["陈浚铭", "杨博文"], "freeforms": ["铭文 - Freeform", "TF家族 - Freeform"], "summary": "一篇5000+脑洞短打，假如杨博文突然收到了公司的外调通知......想写一个做恨版炮友转正，然而越写越跑偏去温情挂了，下次一定不这样了。欢迎讨论。", "words": 5211, "chapters": "1/1", "kudos": 5, "hits": 303, "bookmarks": 0, "comments": 2, "ratio": 1.65}, {"work_id": "77870911", "title": "拐卖儿童是犯法的", "url": "https://archiveofourown.org/works/77870911", "author": "BlindfoldLife", "author_url": "https://archiveofourown.org/users/BlindfoldLife/pseuds/BlindfoldLife", "fandoms": ["TF家族"], "date": "18 Jan 2026", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["举世文铭"], "characters": ["杨博文/陈浚铭 - Character", "杨博文", "陈浚铭"], "freeforms": ["清水"], "summary": "*一发完*或许是劝学文", "words": 2990, "chapters": "1/1", "kudos": 6, "hits": 97, "bookmarks": 0, "comments": 0, "ratio": 6.19}, {"work_id": "77995886", "title": "垃圾一样的爱情", "url": "https://archiveofourown.org/works/77995886", "author": "rikotyan", "author_url": "https://archiveofourown.org/users/rikotyan/pseuds/rikotyan", "fandoms": ["TF家族"], "date": "20 Jan 2026", "rating": "Teen And Up Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["举世文铭", "铭文"], "characters": ["陈浚铭", "杨博文"], "freeforms": ["举世文铭 - Freeform", "铭文 - Freeform"], "summary": "垃圾一样的内容，阴间慎入。继子和小妈", "words": 10387, "chapters": "1/1", "kudos": 10, "hits": 305, "bookmarks": 0, "comments": 5, "ratio": 3.28}, {"work_id": "78092091", "title": "推不开的房门", "url": "https://archiveofourown.org/works/78092091", "author": "ysbjfyf", "author_url": "https://archiveofourown.org/users/ysbjfyf/pseuds/ysbjfyf", "fandoms": ["时代峰峻"], "date": "22 Jan 2026", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["举世文铭", "文铭", "铭文"], "characters": ["陈浚铭", "杨博文"], "freeforms": [], "summary": "不相爱就出不去的房间！一些醋味小铭和小文的建设，清水文无左右位之分", "words": 2060, "chapters": "1/1", "kudos": 2, "hits": 177, "bookmarks": 0, "comments": 2, "ratio": 1.13}, {"work_id": "78208936", "title": "痣", "url": "https://archiveofourown.org/works/78208936", "author": "ysbjfyf", "author_url": "https://archiveofourown.org/users/ysbjfyf/pseuds/ysbjfyf", "fandoms": ["时代峰峻"], "date": "24 Jan 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["举世文铭", "文铭"], "characters": ["杨博文", "陈浚铭"], "freeforms": [], "summary": "要名分的小杨和挑衅小铭文铭预警：未成年性行为，内射，口交", "words": 4583, "chapters": "1/1", "kudos": 8, "hits": 592, "bookmarks": 0, "comments": 0, "ratio": 1.35}, {"work_id": "79055956", "title": "非典型Fork & Cake", "url": "https://archiveofourown.org/works/79055956", "author": "cocoapuff_531", "author_url": "https://archiveofourown.org/users/cocoapuff_531/pseuds/cocoapuff_531", "fandoms": ["TF家族", "TF四代练习生"], "date": "07 Feb 2026", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["铭文", "举世文铭"], "characters": ["陈浚铭", "杨博文"], "freeforms": [], "summary": "有人说食欲、性欲和睡眠三位一体。陈浚铭将盘子里的蛋糕整个插起来填到了嘴里，比起咀嚼更像是直接吞咽，囫囵囤着到奶油还蹭在嘴角上，他有点痴迷地拿叉子刮一下那点奶油，舔掉了。食物向来如此，要大口吞咽最为美味。他一直是这样认为的，直到一切食物失去味道之前。", "words": 3347, "chapters": "1/1", "kudos": 7, "hits": 202, "bookmarks": 1, "comments": 1, "ratio": 3.47}, {"work_id": "79127236", "title": "不做爱就出不去的房间", "url": "https://archiveofourown.org/works/79127236", "author": "sscenery", "author_url": "https://archiveofourown.org/users/sscenery/pseuds/sscenery", "fandoms": ["TF四代"], "date": "08 Feb 2026", "rating": "Explicit", "category": "M/M", "complete": "Complete Work", "relationships": ["杨博文/陈浚铭", "文铭", "举世文铭"], "characters": ["杨博文", "陈浚铭"], "freeforms": ["睡奸"], "summary": "微量伪水煎 双向暗恋 腹黑引导大杨哥✖️单纯害羞小铭狗", "words": 2892, "chapters": "1/1", "kudos": 2, "hits": 308, "bookmarks": 0, "comments": 0, "ratio": 0.65}, {"work_id": "79127706", "title": "酒后", "url": "https://archiveofourown.org/works/79127706", "author": "sscenery", "author_url": "https://archiveofourown.org/users/sscenery/pseuds/sscenery", "fandoms": ["TF家族四代"], "date": "08 Feb 2026", "rating": "Explicit", "category": "M/M", "complete": "Complete Work", "relationships": ["杨博文/陈浚铭", "文铭", "举世文铭"], "characters": ["杨博文", "陈浚铭"], "freeforms": ["双性", "后入", "失禁", "潮吹"], "summary": "杨博文到达酒吧抓人的时候，已经是深夜。", "words": 1654, "chapters": "1/1", "kudos": 4, "hits": 411, "bookmarks": 0, "comments": 0, "ratio": 0.97}, {"work_id": "79181356", "title": "非典型少爷和穷小子", "url": "https://archiveofourown.org/works/79181356", "author": "cocoapuff_531", "author_url": "https://archiveofourown.org/users/cocoapuff_531/pseuds/cocoapuff_531", "fandoms": ["TF四代", "铭文 - Fandom", "举世文铭 - Fandom"], "date": "09 Feb 2026", "rating": "General Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["铭文", "举世文铭"], "characters": ["陈浚铭", "杨博文"], "freeforms": [], "summary": "铭文，同人虚构作品建议搭配食用分享王菲的单曲《红豆》https://163cn.tv/1bNJXw2 (@网易云音乐)", "words": 10209, "chapters": "1/1", "kudos": 10, "hits": 157, "bookmarks": 0, "comments": 3, "ratio": 6.37}, {"work_id": "79189671", "title": "非典型哥弟", "url": "https://archiveofourown.org/works/79189671", "author": "cocoapuff_531", "author_url": "https://archiveofourown.org/users/cocoapuff_531/pseuds/cocoapuff_531", "fandoms": ["TF四代", "铭文 - Fandom", "举世文铭 - Fandom"], "date": "09 Feb 2026", "rating": "General Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["举世文铭", "铭文"], "characters": ["陈浚铭", "杨博文"], "freeforms": [], "summary": "刷到了恋哥癖的笔记，看完真是百感交集，只能说祝他们百年好合吧", "words": 4411, "chapters": "1/1", "kudos": 11, "hits": 215, "bookmarks": 0, "comments": 2, "ratio": 5.12}, {"work_id": "79734376", "title": "茉莉奶绿", "url": "https://archiveofourown.org/works/79734376", "author": "Anonymous", "author_url": "", "fandoms": ["TFBOYS (Band)", "TF家族（四代）"], "date": "17 Feb 2026", "rating": "Teen And Up Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["杨博文/陈浚铭", "举世文铭"], "characters": ["杨博文", "陈浚铭"], "freeforms": [], "summary": "ABO伪现背杨博文的信息素是茉莉花。这件事情陈浚铭很早就知道了。", "words": 5675, "chapters": "1/1", "kudos": 4, "hits": 142, "bookmarks": 0, "comments": 0, "ratio": 2.82}, {"work_id": "80161296", "title": "【文铭】完美猎物", "url": "https://archiveofourown.org/works/80161296", "author": "elaineylly", "author_url": "https://archiveofourown.org/users/elaineylly/pseuds/elaineylly", "fandoms": ["TF家族", "举世文铭 - Fandom"], "date": "24 Feb 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["举世文铭", "文铭", "TF家族 - Relationship", "tf家族四代 - Relationship"], "characters": ["杨博文", "陈浚铭"], "freeforms": ["魅魔", "高潮", "宫交", "中出"], "summary": "爱研究之羊x魅魔铭魅魔好吃好吃", "words": 4146, "chapters": "1/1", "kudos": 3, "hits": 234, "bookmarks": 0, "comments": 0, "ratio": 1.28}, {"work_id": "80161431", "title": "【文铭】北京的空气里到底有什么", "url": "https://archiveofourown.org/works/80161431", "author": "elaineylly", "author_url": "https://archiveofourown.org/users/elaineylly/pseuds/elaineylly", "fandoms": ["举世文铭 - Fandom", "TF家族", "TF家族四代", "文铭 - Fandom"], "date": "24 Feb 2026", "rating": "Teen And Up Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["举世文铭", "TF家族 - Relationship", "文铭"], "characters": ["杨博文", "陈浚铭"], "freeforms": ["口交", "指奸", "sweettalk", "内射"], "summary": "文铭你俩咋了？", "words": 1980, "chapters": "1/1", "kudos": 4, "hits": 236, "bookmarks": 0, "comments": 0, "ratio": 1.69}, {"work_id": "80220696", "title": "此爱天亮失效", "url": "https://archiveofourown.org/works/80220696", "author": "MonnLaet", "author_url": "https://archiveofourown.org/users/MonnLaet/pseuds/MonnLaet", "fandoms": ["TF四代"], "date": "09 Mar 2026", "rating": "Explicit", "category": "M/M", "complete": "Work in Progress", "relationships": ["陈浚铭/杨博文", "举世文铭", "铭文"], "characters": ["杨博文", "陈浚铭", "张桂源", "张函瑞", "王橹杰", "左奇函", "陈思罕"], "freeforms": ["伪现背", "双性", "少量药物滥用情节预警"], "summary": "接吻的时候，陈浚铭眯着眼睛，看到杨博文眼角晶莹的泪意，一瞬之间隐藏在他颤抖的眼睫。他认命地闭上了眼，已经完全明白了自己的那阵情绪，是胆怯，是懦弱，是想要靠近，却发现无路可走。但他无论如何也不能退下，哪怕成为创口贴，成为面包屑，成为死去的猫，成为廉价的低效止痛药，只要能给他带来一点点疏解，他就心甘情愿，也心满意足。", "words": 44556, "chapters": "12/?", "kudos": 11, "hits": 377, "bookmarks": 0, "comments": 0, "ratio": 2.92}];
+
+let currentSort = "ratio";
+let currentSearch = "";
+let activeFilters = new Set();
+
+function formatNumber(n) {
+  return n.toLocaleString();
+}
+
+function getSearchText(w) {
+  return [
+    w.title, w.author, w.summary,
+    ...w.fandoms, ...w.relationships,
+    ...w.characters, ...w.freeforms
+  ].join(" ").toLowerCase();
+}
+
+// Parse date for sorting
+function parseDate(dateStr) {
+  const months = {
+    'Jan':0,'Feb':1,'Mar':2,'Apr':3,'May':4,'Jun':5,
+    'Jul':6,'Aug':7,'Sep':8,'Oct':9,'Nov':10,'Dec':11
+  };
+  const parts = dateStr.split(" ");
+  if (parts.length === 3) {
+    return new Date(parseInt(parts[2]), months[parts[1]] || 0, parseInt(parts[0]));
+  }
+  return new Date(dateStr);
+}
+
+function filterAndSort() {
+  let works = ALL_WORKS.filter(w => w.kudos > 0);
+
+  // Search
+  if (currentSearch) {
+    const q = currentSearch.toLowerCase();
+    works = works.filter(w => getSearchText(w).includes(q));
+  }
+
+  // Filters
+  if (activeFilters.has("complete")) {
+    works = works.filter(w => w.complete === "Complete Work");
+  }
+  if (activeFilters.has("long")) {
+    works = works.filter(w => w.words >= 10000);
+  }
+  if (activeFilters.has("short")) {
+    works = works.filter(w => w.words < 5000);
+  }
+
+  // Sort
+  works.sort((a, b) => {
+    switch (currentSort) {
+      case "ratio": return b.ratio - a.ratio;
+      case "kudos": return b.kudos - a.kudos;
+      case "hits": return b.hits - a.hits;
+      case "words": return b.words - a.words;
+      case "date": return parseDate(b.date) - parseDate(a.date);
+      default: return 0;
+    }
+  });
+
+  return works;
+}
+
+function renderWorks() {
+  const works = filterAndSort();
+  const list = document.getElementById("workList");
+  const countEl = document.getElementById("countDisplay");
+
+  countEl.textContent = `显示 ${works.length} 篇作品（共 ${ALL_WORKS.length} 篇，过滤掉 ${ALL_WORKS.length - works.length} 篇无kudos/不符合条件的作品）`;
+
+  if (works.length === 0) {
+    list.innerHTML = '<div class="no-results">没有找到符合条件的作品</div>';
+    return;
+  }
+
+  list.innerHTML = works.map((w, i) => {
+    const rank = i + 1;
+    const rankClass = rank <= 3 ? "top3" : "";
+    const ratioClass = w.ratio >= 5 ? "high" : "";
+
+    const relTags = w.relationships.map(t =>
+      `<span class="tag rel">${escapeHtml(t)}</span>`
+    ).join("");
+    const ffTags = w.freeforms.slice(0, 5).map(t =>
+      `<span class="tag">${escapeHtml(t)}</span>`
+    ).join("");
+
+    return `
+      <div class="work-card">
+        <div class="rank ${rankClass}">#${rank}</div>
+        <div class="work-title">
+          <a href="${w.url}" target="_blank" rel="noopener">${escapeHtml(w.title)}</a>
+        </div>
+        <div class="work-author">
+          by <a href="${w.author_url}" target="_blank" rel="noopener">${escapeHtml(w.author)}</a>
+        </div>
+        ${(relTags || ffTags) ? `<div class="work-tags">${relTags}${ffTags}</div>` : ""}
+        ${w.summary ? `<div class="work-summary">${escapeHtml(w.summary)}</div>` : ""}
+        <div class="work-meta">
+          <span class="ratio-badge ${ratioClass}">${w.ratio}%</span>
+          <span class="meta-item"><span class="label">❤️</span><span class="value">${formatNumber(w.kudos)}</span></span>
+          <span class="meta-item"><span class="label">👁</span><span class="value">${formatNumber(w.hits)}</span></span>
+          <span class="meta-item"><span class="label">字</span><span class="value">${formatNumber(w.words)}</span></span>
+          <span class="meta-item"><span class="label">章</span><span class="value">${w.chapters}</span></span>
+          ${w.bookmarks ? `<span class="meta-item"><span class="label">🔖</span><span class="value">${formatNumber(w.bookmarks)}</span></span>` : ""}
+          ${w.complete === "Complete Work" ? '<span class="meta-item" style="color:var(--green)">✓ 完结</span>' : '<span class="meta-item" style="color:var(--accent)">◌ 连载中</span>'}
+        </div>
+        <div class="work-date">${w.date}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function updateStats() {
+  const valid = ALL_WORKS.filter(w => w.kudos > 0);
+  const avgRatio = valid.length > 0
+    ? (valid.reduce((s, w) => s + w.ratio, 0) / valid.length).toFixed(2)
+    : 0;
+  const totalKudos = ALL_WORKS.reduce((s, w) => s + w.kudos, 0);
+  const totalWords = ALL_WORKS.reduce((s, w) => s + w.words, 0);
+
+  document.getElementById("statsBar").innerHTML = `
+    <span>总计 <strong>${ALL_WORKS.length}</strong> 篇</span>
+    <span>平均比率 <strong>${avgRatio}%</strong></span>
+    <span>总Kudos <strong>${formatNumber(totalKudos)}</strong></span>
+    <span>总字数 <strong>${formatNumber(totalWords)}</strong></span>
+  `;
+}
+
+// Events
+document.getElementById("searchBox").addEventListener("input", (e) => {
+  currentSearch = e.target.value;
+  renderWorks();
+});
+
+document.getElementById("sortBtns").addEventListener("click", (e) => {
+  const btn = e.target.closest(".sort-btn");
+  if (!btn) return;
+  document.querySelectorAll(".sort-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  currentSort = btn.dataset.sort;
+  renderWorks();
+});
+
+document.getElementById("filterRow").addEventListener("click", (e) => {
+  const chip = e.target.closest(".filter-chip");
+  if (!chip) return;
+  const f = chip.dataset.filter;
+  if (activeFilters.has(f)) {
+    activeFilters.delete(f);
+    chip.classList.remove("active");
+  } else {
+    // "long" and "short" are mutually exclusive
+    if (f === "long" && activeFilters.has("short")) {
+      activeFilters.delete("short");
+      document.querySelector('[data-filter="short"]').classList.remove("active");
+    }
+    if (f === "short" && activeFilters.has("long")) {
+      activeFilters.delete("long");
+      document.querySelector('[data-filter="long"]').classList.remove("active");
+    }
+    activeFilters.add(f);
+    chip.classList.add("active");
+  }
+  renderWorks();
+});
+
+// Init
+updateStats();
+renderWorks();
+</script>
+</body>
+</html>

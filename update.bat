@@ -1,58 +1,136 @@
 @echo off
 chcp 65001 >nul
-setlocal enabledelayedexpansion
+setlocal EnableDelayedExpansion
+set "NO_PAUSE=0"
 
-REM ============================================================
-REM  AO3 Sorter - 一键更新脚本
-REM  双击运行：抓取 → 生成 tags.json → 推送 GitHub
-REM ============================================================
+if /i "%~1"=="--no-pause" (
+    set "NO_PAUSE=1"
+    shift
+)
 
-REM --- 配置区 ---
+set "SCRIPT_DIR=%~dp0"
+if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 
-REM GitHub Pages 仓库的本地路径
-set "REPO_DIR=C:\Users\33715\Desktop\sidework\ao3\ao3-sorter"
+set "REPO_DIR=%SCRIPT_DIR%"
+set "TAGS="
+set "CONFIG_PATH=%SCRIPT_DIR%\ao3_config.json"
 
-REM 脚本所在目录（ao3_sorter.py 和 gen_tags.py）
-set "SCRIPT_DIR=C:\Users\33715\Desktop\sidework\ao3"
+if exist "%CONFIG_PATH%" (
+    for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "$cfg = Get-Content -Raw '%CONFIG_PATH%' | ConvertFrom-Json; if ($cfg.output_dir) { $cfg.output_dir }"`) do (
+        set "REPO_DIR=%%I"
+    )
+    for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "$cfg = Get-Content -Raw '%CONFIG_PATH%' | ConvertFrom-Json; if ($cfg.tag_inputs) { ($cfg.tag_inputs | ForEach-Object { '\"' + $_ + '\"' }) -join ' ' }"`) do (
+        set "TAGS=%%I"
+    )
+)
 
-REM 要抓取的 tag 列表（用空格分隔）
-set TAGS="桂瑞"
-REM 添加更多: set TAGS="桂瑞" "另一个tag" "第三个tag"
+if exist "%SCRIPT_DIR%\update.local.bat" (
+    call "%SCRIPT_DIR%\update.local.bat"
+)
 
-REM --- 配置区结束 ---
+if not "%~1"=="" (
+    set "TAGS=%*"
+)
 
 echo ====================================================
-echo   AO3 Sorter - 一键更新
+echo   AO3 Sorter Update
 echo ====================================================
 echo.
 
-REM 抓取每个 tag，输出到仓库目录
+if not exist "%SCRIPT_DIR%\ao3_sorter.py" (
+    echo Missing file: %SCRIPT_DIR%\ao3_sorter.py
+    goto :exit_error
+)
+
+if not exist "%SCRIPT_DIR%\gen_tags.py" (
+    echo Missing file: %SCRIPT_DIR%\gen_tags.py
+    goto :exit_error
+)
+
+if "%TAGS%"=="" (
+    echo No tags configured.
+    echo.
+    echo Use one of these options:
+    echo   1. Add tag_inputs to ao3_config.json
+    echo   2. Run: update.bat "tag one" "tag two"
+    echo   3. Copy update.local.example.bat to update.local.bat and edit TAGS there
+    goto :exit_error
+)
+
+if not exist "%REPO_DIR%" (
+    echo Output directory does not exist: %REPO_DIR%
+    goto :exit_error
+)
+
 for %%T in (%TAGS%) do (
     echo ----------------------------------------
-    echo 正在抓取: %%~T
+    echo Fetching: %%~T
     echo ----------------------------------------
     python "%SCRIPT_DIR%\ao3_sorter.py" "%%~T" "%REPO_DIR%"
+    if errorlevel 1 (
+        echo Failed while processing tag: %%~T
+        goto :exit_error
+    )
     echo.
 )
 
-REM 扫描 ao3_sorted_*.html，自动生成 tags.json
 echo ----------------------------------------
-echo 正在生成 tags.json ...
+echo Rebuilding tags.json
 echo ----------------------------------------
 python "%SCRIPT_DIR%\gen_tags.py" "%REPO_DIR%"
+if errorlevel 1 (
+    echo Failed to rebuild tags.json
+    goto :exit_error
+)
 echo.
 
-REM 推送到 GitHub
+pushd "%REPO_DIR%" >nul
+git rev-parse --is-inside-work-tree >nul 2>&1
+if errorlevel 1 (
+    echo Not a git repository. Generated files were updated locally only.
+    popd >nul
+    goto :exit_ok
+)
+
 echo ----------------------------------------
-echo 正在推送到 GitHub...
+echo Preparing git changes
 echo ----------------------------------------
-cd /d "%REPO_DIR%"
-git add -A
-git commit -m "更新数据 %date% %time:~0,8%"
+git add tags.json index.html ao3_sorted_*.html
+git diff --cached --quiet
+if not errorlevel 1 (
+    echo No staged changes detected. Nothing to commit.
+    popd >nul
+    goto :exit_ok
+)
+
+set "COMMIT_MSG=Update AO3 data %date% %time:~0,8%"
+git commit -m "%COMMIT_MSG%"
+if errorlevel 1 (
+    echo Git commit failed.
+    popd >nul
+    goto :exit_error
+)
+
 git push
+if errorlevel 1 (
+    echo Git push failed.
+    popd >nul
+    goto :exit_error
+)
 
+popd >nul
 echo.
 echo ====================================================
-echo   完成！GitHub Pages 几分钟后更新
+echo   Update complete
 echo ====================================================
-pause
+goto :exit_ok
+
+:exit_error
+echo.
+echo Update failed.
+if "%NO_PAUSE%"=="0" pause
+exit /b 1
+
+:exit_ok
+if "%NO_PAUSE%"=="0" pause
+exit /b 0
