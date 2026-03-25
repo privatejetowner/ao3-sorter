@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AO3 Sorter · 杨桂</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf8f5;
+    --bg-card: #ffffff;
+    --text: #2c2c2c;
+    --text-dim: #7a7672;
+    --text-light: #a8a4a0;
+    --accent: #c45d3e;
+    --accent-soft: #e8a690;
+    --accent-bg: #fdf0ec;
+    --border: #e8e4df;
+    --border-light: #f0ece8;
+    --green: #4a8c6f;
+    --green-bg: #edf5f0;
+    --blue: #4a7a9b;
+    --blue-bg: #edf3f7;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+    --shadow-hover: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05);
+    --radius: 10px;
+    --font-serif: 'Noto Serif SC', 'Songti SC', serif;
+    --font-mono: 'JetBrains Mono', 'Menlo', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-serif);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* Header */
+  .page-header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+  }
+
+  .page-header h1 span {
+    color: var(--accent);
+  }
+
+  .page-header .subtitle {
+    color: var(--text-dim);
+    font-size: 15px;
+  }
+
+  .page-header .stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-top: 20px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .page-header .stats-bar strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 32px;
+    align-items: center;
+  }
+
+  .search-box {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--font-serif);
+    font-size: 14px;
+    background: var(--bg-card);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box:focus {
+    border-color: var(--accent-soft);
+  }
+
+  .sort-btns {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 3px;
+  }
+
+  .sort-btn {
+    padding: 7px 14px;
+    border: none;
+    background: transparent;
+    border-radius: 7px;
+    font-family: var(--font-serif);
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .sort-btn:hover {
+    color: var(--text);
+  }
+
+  .sort-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .filter-chip {
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-family: var(--font-serif);
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    background: var(--bg-card);
+    transition: all 0.2s;
+  }
+
+  .filter-chip:hover {
+    border-color: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .filter-chip.active {
+    background: var(--accent-bg);
+    border-color: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .kudos-min-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--bg-card);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .kudos-min-wrap label {
+    white-space: nowrap;
+    font-family: var(--font-mono);
+  }
+
+  .kudos-min-wrap input {
+    width: 56px;
+    border: none;
+    outline: none;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+    background: transparent;
+    text-align: center;
+  }
+
+  .kudos-min-wrap:focus-within {
+    border-color: var(--accent-soft);
+  }
+
+  /* Work cards */
+  .work-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .work-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.25s, transform 0.25s;
+    position: relative;
+  }
+
+  .work-card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-1px);
+  }
+
+  .work-card .rank {
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    background: var(--accent);
+    color: white;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 2px 10px;
+    border-radius: 12px;
+  }
+
+  .work-card .rank.top3 {
+    background: linear-gradient(135deg, #c45d3e, #d4845a);
+    font-size: 13px;
+    padding: 3px 12px;
+  }
+
+  .work-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .work-title a {
+    color: var(--text);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .work-title a:hover {
+    color: var(--accent);
+  }
+
+  .work-author {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .work-author a {
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+
+  .work-author a:hover {
+    color: var(--accent);
+  }
+
+  .work-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .work-tags .tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--border-light);
+    color: var(--text-dim);
+  }
+
+  .work-tags .tag.rel {
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+
+  .work-summary {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.8;
+    margin-bottom: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .work-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-light);
+    align-items: center;
+  }
+
+  .work-meta .ratio-badge {
+    background: var(--green-bg);
+    color: var(--green);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 13px;
+  }
+
+  .work-meta .ratio-badge.high {
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+
+  .work-meta .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .work-meta .meta-item .label {
+    color: var(--text-light);
+  }
+
+  .work-meta .meta-item .value {
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .work-date {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 10px;
+  }
+
+  /* No results */
+  .no-results {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+    font-size: 15px;
+  }
+
+  .count-display {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 16px;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .container { padding: 24px 16px 60px; }
+    .page-header h1 { font-size: 22px; }
+    .work-card { padding: 18px; }
+    .work-title { font-size: 16px; }
+    .controls { flex-direction: column; }
+    .page-header .stats-bar { flex-wrap: wrap; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="page-header">
+    <h1>📖 <span>杨桂</span></h1>
+    <div class="subtitle">按 Kudos/Hits 比排序 · 数据来自 AO3</div>
+    <div class="stats-bar" id="statsBar"></div>
+  </div>
+
+  <div class="controls">
+    <input type="text" class="search-box" id="searchBox"
+           placeholder="搜索标题、作者、标签、简介…">
+    <div class="sort-btns" id="sortBtns">
+      <button class="sort-btn active" data-sort="ratio">比率 ↓</button>
+      <button class="sort-btn" data-sort="kudos">Kudos ↓</button>
+      <button class="sort-btn" data-sort="hits">Hits ↓</button>
+      <button class="sort-btn" data-sort="words">字数 ↓</button>
+      <button class="sort-btn" data-sort="date">最新</button>
+    </div>
+    <div class="filter-row" id="filterRow">
+      <button class="filter-chip" data-filter="complete">仅完结</button>
+      <button class="filter-chip" data-filter="long">长篇(>10k)</button>
+      <button class="filter-chip" data-filter="short">短篇(<5k)</button>
+      <span class="kudos-min-wrap">
+        <label for="kudosMin">Kudos ≥</label>
+        <input type="number" id="kudosMin" min="0" value="0" step="5">
+      </span>
+    </div>
+  </div>
+
+  <div class="count-display" id="countDisplay"></div>
+  <div class="work-list" id="workList"></div>
+</div>
+
+<script>
+const ALL_WORKS = [{"work_id": "57240850", "title": "站街", "url": "https://archiveofourown.org/works/57240850", "author": "lajidashener", "author_url": "https://archiveofourown.org/users/lajidashener/pseuds/lajidashener", "fandoms": ["all桂 - Fandom"], "date": "09 Jul 2024", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["张桂源", "杨博文"], "freeforms": [], "summary": "如果是杨博文，他觉得委屈", "words": 3040, "chapters": "1/1", "kudos": 31, "hits": 1916, "bookmarks": 2, "comments": 1, "ratio": 1.62}, {"work_id": "57240934", "title": "妹妹", "url": "https://archiveofourown.org/works/57240934", "author": "lajidashener", "author_url": "https://archiveofourown.org/users/lajidashener/pseuds/lajidashener", "fandoms": ["张桂源 - Fandom"], "date": "09 Jul 2024", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["张桂源", "杨博文"], "freeforms": [], "summary": "他将张桂圆的后脑托起，在唇上一下一下的吻，叫宝宝也叫妹妹。", "words": 2186, "chapters": "1/1", "kudos": 35, "hits": 1723, "bookmarks": 1, "comments": 0, "ratio": 2.03}, {"work_id": "61538638", "title": "染", "url": "https://archiveofourown.org/works/61538638", "author": "schwarzfahren", "author_url": "https://archiveofourown.org/users/schwarzfahren/pseuds/schwarzfahren", "fandoms": ["TF四代"], "date": "22 Dec 2024", "rating": "Explicit", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "奇文", "桂瑞"], "characters": ["杨博文", "张桂源", "左奇函", "张函瑞"], "freeforms": ["出轨"], "summary": "爱是否总是唯一", "words": 19969, "chapters": "1/1", "kudos": 25, "hits": 2477, "bookmarks": 1, "comments": 11, "ratio": 1.01}, {"work_id": "62801119", "title": "重生", "url": "https://archiveofourown.org/works/62801119", "author": "lajidashener", "author_url": "https://archiveofourown.org/users/lajidashener/pseuds/lajidashener", "fandoms": ["杨桂 - Fandom"], "date": "05 Feb 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["张桂源", "杨博文"], "freeforms": [], "summary": "在那间小小的潮湿的房间，也在张桂圆温暖的臂弯，他终于重生了。", "words": 5604, "chapters": "1/1", "kudos": 25, "hits": 1000, "bookmarks": 1, "comments": 0, "ratio": 2.5}, {"work_id": "63873823", "title": "乳钉初体验", "url": "https://archiveofourown.org/works/63873823", "author": "lajidashener", "author_url": "https://archiveofourown.org/users/lajidashener/pseuds/lajidashener", "fandoms": ["TF家族"], "date": "15 Mar 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "这算什么？算我爱小狗", "words": 1457, "chapters": "1/1", "kudos": 21, "hits": 1148, "bookmarks": 0, "comments": 0, "ratio": 1.83}, {"work_id": "65505688", "title": "月儿谣", "url": "https://archiveofourown.org/works/65505688", "author": "lajidashener", "author_url": "https://archiveofourown.org/users/lajidashener/pseuds/lajidashener", "fandoms": ["张桂源 - Fandom"], "date": "12 May 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "发疯到很厉害的时候会不认人，被绳子绑住手脚手腕脚踝磨的血肉模糊，对上张桂源的眼睛猩红却无神，他说“药…药给我药”后脑勺一下一下砸在墙上，张桂源控制不住他，只能用手垫着墙做肉垫。“月儿弯，月儿弯，月儿弯弯像小船……”“小船摇摇，小船慢慢，带哪个娃娃云里钻 。", "words": 8559, "chapters": "1/1", "kudos": 20, "hits": 554, "bookmarks": 2, "comments": 1, "ratio": 3.61}, {"work_id": "65579875", "title": "不知名巷", "url": "https://archiveofourown.org/works/65579875", "author": "Sikiiyamiyami", "author_url": "https://archiveofourown.org/users/Sikiiyamiyami/pseuds/Sikiiyamiyami", "fandoms": ["TF家族", "TF四代"], "date": "15 May 2025", "rating": "Explicit", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "我桂"], "characters": ["张桂源", "杨博文", "路人 - Character"], "freeforms": [], "summary": "*（含量极少）杨桂*也可以当路人视角*第一人称*双🌟——桂圆，桂圆，我好像从未这样叫过你，你真的幸福吗。", "words": 3243, "chapters": "1/1", "kudos": 7, "hits": 529, "bookmarks": 1, "comments": 0, "ratio": 1.32}, {"work_id": "66275344", "title": "穿花蝴蝶", "url": "https://archiveofourown.org/works/66275344", "author": "Damitajo", "author_url": "https://archiveofourown.org/users/Damitajo/pseuds/Damitajo", "fandoms": ["时代峰峻"], "date": "07 Jun 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨博文/张桂源", "杨博文/张函瑞", "杨桂", "文瑞"], "characters": ["杨博文", "张桂源", "张函瑞"], "freeforms": ["梦友向"], "summary": "杨博文像个文艺逼一样，特别郑重其事地和我说，你知道吗，人在被遗弃的时候也可以遗弃任何人。我愣愣地问他，这句话是哪个作家说的？杨博文笑起来，皱了皱鼻子：By Victor。", "words": 4983, "chapters": "1/1", "kudos": 13, "hits": 471, "bookmarks": 0, "comments": 0, "ratio": 2.76}, {"work_id": "66275419", "title": "完美的温柔出现在远方", "url": "https://archiveofourown.org/works/66275419", "author": "Damitajo", "author_url": "https://archiveofourown.org/users/Damitajo/pseuds/Damitajo", "fandoms": ["时代峰峻"], "date": "07 Jun 2025", "rating": "Not Rated", "category": "M/M, Other", "complete": "Complete Work", "relationships": ["杨博文/mob", "杨桂"], "characters": ["杨博文", "mob - Character", "张桂源"], "freeforms": ["灵异故事 - Freeform"], "summary": "被鬼痴迷的男人杨博文", "words": 2208, "chapters": "1/1", "kudos": 6, "hits": 381, "bookmarks": 0, "comments": 0, "ratio": 1.57}, {"work_id": "68002831", "title": "青春鸟", "url": "https://archiveofourown.org/works/68002831", "author": "PhantomWine", "author_url": "https://archiveofourown.org/users/PhantomWine/pseuds/PhantomWine", "fandoms": ["TF四代"], "date": "23 Jul 2025", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["杨博文/张桂源", "杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "*杨博文x张桂源，左右顺序有意义，请谨慎阅读。*校园，含未成年过激性行为描写。", "words": 6534, "chapters": "1/1", "kudos": 55, "hits": 1869, "bookmarks": 4, "comments": 4, "ratio": 2.94}, {"work_id": "69269716", "title": "玩火尿炕", "url": "https://archiveofourown.org/works/69269716", "author": "Kissmemoon", "author_url": "https://archiveofourown.org/users/Kissmemoon/pseuds/Kissmemoon", "fandoms": ["TF家族四代"], "date": "15 Aug 2025", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["ack - Relationship", "文奇", "杨桂"], "characters": ["杨博文", "张桂源", "左奇函"], "freeforms": [], "summary": "一夜情两夜情三夜情", "words": 1976, "chapters": "1/1", "kudos": 9, "hits": 1430, "bookmarks": 1, "comments": 1, "ratio": 0.63}, {"work_id": "69487101", "title": "你的屁股是电子的吗", "url": "https://archiveofourown.org/works/69487101", "author": "grapefruittttttt", "author_url": "https://archiveofourown.org/users/grapefruittttttt/pseuds/grapefruittttttt", "fandoms": ["TF家族", "四代"], "date": "19 Aug 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "杨博文/张桂源"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "双性攻/左右位有意义攻有被纳入式性行为注意避雷 感谢", "words": 3243, "chapters": "1/1", "kudos": 36, "hits": 1172, "bookmarks": 3, "comments": 5, "ratio": 3.07}, {"work_id": "69726906", "title": "亲密准则", "url": "https://archiveofourown.org/works/69726906", "author": "WideSargasso", "author_url": "https://archiveofourown.org/users/WideSargasso/pseuds/WideSargasso", "fandoms": ["TF四代"], "date": "24 Aug 2025", "rating": "Teen And Up Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["桂文桂", "桂文", "杨桂"], "characters": ["张桂源", "杨博文"], "freeforms": ["无明显左右位"], "summary": "十八岁之前不可以做爱。", "words": 2177, "chapters": "1/1", "kudos": 35, "hits": 1621, "bookmarks": 1, "comments": 10, "ratio": 2.16}, {"work_id": "70543066", "title": "囚龙转凤", "url": "https://archiveofourown.org/works/70543066", "author": "Abrightsky1119", "author_url": "https://archiveofourown.org/users/Abrightsky1119/pseuds/Abrightsky1119", "fandoms": ["张桂源 - Fandom"], "date": "08 Sep 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["君臣", "杨桂"], "characters": ["张桂源 杨博文"], "freeforms": ["强迫 改造 双性"], "summary": "", "words": 3526, "chapters": "1/1", "kudos": 5, "hits": 717, "bookmarks": 0, "comments": 0, "ratio": 0.7}, {"work_id": "70955201", "title": "《饲宠》", "url": "https://archiveofourown.org/works/70955201", "author": "Abrightsky1119", "author_url": "https://archiveofourown.org/users/Abrightsky1119/pseuds/Abrightsky1119", "fandoms": ["张桂源 - Fandom"], "date": "17 Sep 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["张桂源 杨博文"], "freeforms": ["杨桂 香肉"], "summary": "", "words": 8382, "chapters": "1/1", "kudos": 15, "hits": 1498, "bookmarks": 1, "comments": 0, "ratio": 1.0}, {"work_id": "72018961", "title": "旷野的风无法拂尘", "url": "https://archiveofourown.org/works/72018961", "author": "schwarzfahren", "author_url": "https://archiveofourown.org/users/schwarzfahren/pseuds/schwarzfahren", "fandoms": ["TF四代"], "date": "06 Oct 2025", "rating": "General Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["杨博文", "张桂源", "陈浚铭"], "freeforms": ["伪现背"], "summary": "他知道的是，杨博文作为一名普通同事，总能激发他内心深处不愿面对的东西，他生而为人最原始最卑劣的罪恶与本能，嫉妒，肉欲，欺瞒，控制欲。", "words": 7684, "chapters": "2/2", "kudos": 13, "hits": 440, "bookmarks": 2, "comments": 3, "ratio": 2.95}, {"work_id": "73205456", "title": "【杨all】Lucky Rambo/幸运博文", "url": "https://archiveofourown.org/works/73205456", "author": "Damitajo", "author_url": "https://archiveofourown.org/users/Damitajo/pseuds/Damitajo", "fandoms": ["TF family"], "date": "27 Oct 2025", "rating": "Not Rated", "category": "F/F", "complete": "Complete Work", "relationships": ["杨博文/张桂源", "杨博文/陈浚铭", "杨桂", "举世文铭"], "characters": ["杨博文", "张桂源", "陈浚铭"], "freeforms": [], "summary": "杨博文遭受了一个诅咒，每个和他约会的人都会找到真爱，而他永无真爱。", "words": 1819, "chapters": "1/1", "kudos": 12, "hits": 531, "bookmarks": 0, "comments": 0, "ratio": 2.26}, {"work_id": "73329591", "title": "偷吃", "url": "https://archiveofourown.org/works/73329591", "author": "CamouflagedCauliflower", "author_url": "https://archiveofourown.org/users/CamouflagedCauliflower/pseuds/CamouflagedCauliflower", "fandoms": ["TF家族", "TF四代", "TFBOYS (Band)"], "date": "29 Oct 2025", "rating": "Teen And Up Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["文铭", "杨桂", "桂铭"], "characters": ["陈浚铭", "杨博文", "张桂源"], "freeforms": [], "summary": "", "words": 8911, "chapters": "1/1", "kudos": 11, "hits": 936, "bookmarks": 0, "comments": 4, "ratio": 1.18}, {"work_id": "73329691", "title": "悠长假期", "url": "https://archiveofourown.org/works/73329691", "author": "CamouflagedCauliflower", "author_url": "https://archiveofourown.org/users/CamouflagedCauliflower/pseuds/CamouflagedCauliflower", "fandoms": ["TFBOYS (Band)", "TF家族", "TF四代"], "date": "29 Oct 2025", "rating": "General Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["铭瑞", "桂瑞", "熙铭", "杨桂"], "characters": ["陈浚铭", "张函瑞", "张桂源", "杨博文", "汪俊熙", "王橹杰"], "freeforms": [], "summary": "", "words": 24481, "chapters": "1/1", "kudos": 6, "hits": 348, "bookmarks": 1, "comments": 0, "ratio": 1.72}, {"work_id": "73431336", "title": "【杨桂】北京爱情故事", "url": "https://archiveofourown.org/works/73431336", "author": "Stmmio", "author_url": "https://archiveofourown.org/users/Stmmio/pseuds/Stmmio", "fandoms": ["TF家族"], "date": "31 Oct 2025", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "杨博文/张桂源"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "伪现背，he无数条错综复杂的人生线都有相遇的交点。", "words": 12192, "chapters": "1/1", "kudos": 30, "hits": 651, "bookmarks": 1, "comments": 11, "ratio": 4.61}, {"work_id": "73455016", "title": "狗咬狗", "url": "https://archiveofourown.org/works/73455016", "author": "CamouflagedCauliflower", "author_url": "https://archiveofourown.org/users/CamouflagedCauliflower/pseuds/CamouflagedCauliflower", "fandoms": ["TFBOYS (Band)", "TF家族", "TF四代"], "date": "31 Oct 2025", "rating": "General Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["桂瑞", "铭瑞", "杨桂"], "characters": ["陈浚铭", "杨博文", "张桂源", "张函瑞"], "freeforms": [], "summary": "", "words": 6710, "chapters": "1/1", "kudos": 7, "hits": 488, "bookmarks": 0, "comments": 0, "ratio": 1.43}, {"work_id": "74191796", "title": "橹帝选妃", "url": "https://archiveofourown.org/works/74191796", "author": "Larkdear", "author_url": "https://archiveofourown.org/users/Larkdear/pseuds/Larkdear", "fandoms": ["TF家族"], "date": "14 Nov 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["橹all", "橹桂 - Relationship", "橹穆 - Relationship", "橹瑞", "橹奇", "文奇", "恒奇", "杨桂", "橹奕"], "characters": ["王橹杰", "张桂源", "穆祉丞", "张函瑞", "左奇函", "杨博文", "陈奕恒", "张奕然"], "freeforms": [], "summary": "橹all 封建余孽也有温情一刻泪痕不学君恩断，拭却千行更万行。珊瑚枕上千行泪，不是思君是恨君", "words": 7633, "chapters": "2/2", "kudos": 25, "hits": 1854, "bookmarks": 0, "comments": 5, "ratio": 1.35}, {"work_id": "74638516", "title": "不乖", "url": "https://archiveofourown.org/works/74638516", "author": "SourMoonPop123", "author_url": "https://archiveofourown.org/users/SourMoonPop123/pseuds/SourMoonPop123", "fandoms": ["杨桂 - Fandom"], "date": "23 Nov 2025", "rating": "Not Rated", "category": "M/M", "complete": "Work in Progress", "relationships": ["杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "", "words": 1287, "chapters": "1/?", "kudos": 1, "hits": 494, "bookmarks": 0, "comments": 0, "ratio": 0.2}, {"work_id": "74828901", "title": "【杨桂/复函】成人礼", "url": "https://archiveofourown.org/works/74828901", "author": "Heteroglossia_599", "author_url": "https://archiveofourown.org/users/Heteroglossia_599/pseuds/Heteroglossia_599", "fandoms": ["TF四代"], "date": "01 Dec 2025", "rating": "Not Rated", "category": "Gen, M/M", "complete": "Work in Progress", "relationships": ["杨桂", "复函", "奇文", "桂瑞", "不适合正规军洁党观看"], "characters": ["张桂源", "杨博文", "左奇函", "张函瑞"], "freeforms": [], "summary": "把我的青春期都献给你的成人礼。", "words": 11107, "chapters": "2/?", "kudos": 17, "hits": 1392, "bookmarks": 1, "comments": 5, "ratio": 1.22}, {"work_id": "74930041", "title": "【杨all】实习神父", "url": "https://archiveofourown.org/works/74930041", "author": "grapefruittttttt", "author_url": "https://archiveofourown.org/users/grapefruittttttt/pseuds/grapefruittttttt", "fandoms": ["TF家族", "TF - Fandom", "TF四代"], "date": "29 Nov 2025", "rating": "Not Rated", "category": "F/F", "complete": "Complete Work", "relationships": ["文恒", "杨桂", "文奇", "杨all"], "characters": ["杨博文", "陈奕恒", "张桂源", "左奇函"], "freeforms": [], "summary": "实习神父驱魔一次加一分学分。", "words": 6830, "chapters": "1/1", "kudos": 9, "hits": 369, "bookmarks": 0, "comments": 4, "ratio": 2.44}, {"work_id": "75072611", "title": "爱从打破从友谊开始", "url": "https://archiveofourown.org/works/75072611", "author": "huiyiqi", "author_url": "https://archiveofourown.org/users/huiyiqi/pseuds/huiyiqi", "fandoms": ["张桂源 - Fandom", "杨博文 - Fandom", "天文望源镜 - Fandom"], "date": "01 Dec 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["桂文", "杨桂", "天文望源镜", "桂文桂"], "characters": ["#张桂源", "#杨博文"], "freeforms": [], "summary": "我不想让我们的关系变得尴尬，亦或者渐行渐远，因为我知道那是因为爱的种子在我们的心中间产生了隔阂，一点点壮大，直到我再也无法忍受他戳破友谊的隔膜。我清楚的知道那是爱，是喜欢，是我放下所有也想重新融入我血脉中的眷恋---18楼半架空，会有其他楼人陆续出现，含有少量完年/翔霖。时间线一半基于张桂源杨博文现实舞台和物料，一半是二创架空。可能对人物把控的不到位的地方欢迎大家来跟我一起讨论~没有明显左右位，有车的章节会提前标注做左右位。", "words": 2509, "chapters": "1/1", "kudos": 9, "hits": 496, "bookmarks": 1, "comments": 2, "ratio": 1.81}, {"work_id": "75114101", "title": "杨桂｜不会原谅你", "url": "https://archiveofourown.org/works/75114101", "author": "50Ra1n0n42", "author_url": "https://archiveofourown.org/users/50Ra1n0n42/pseuds/50Ra1n0n42", "fandoms": ["TFfamily"], "date": "02 Dec 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "杨博文/张桂源"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "*杨博文x张桂源，左右有意义。*短打存档*人鬼情未了，这可不是一件小事！", "words": 732, "chapters": "1/1", "kudos": 4, "hits": 299, "bookmarks": 0, "comments": 0, "ratio": 1.34}, {"work_id": "75191646", "title": "室友关系", "url": "https://archiveofourown.org/works/75191646", "author": "Backseatforu", "author_url": "https://archiveofourown.org/users/Backseatforu/pseuds/Backseatforu", "fandoms": ["TF四代"], "date": "03 Dec 2025", "rating": "General Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "杨博文/张桂源"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "深夜五分钟意淫产物或许有后续", "words": 889, "chapters": "1/1", "kudos": 7, "hits": 507, "bookmarks": 0, "comments": 0, "ratio": 1.38}, {"work_id": "75372201", "title": "他是有苦衷的 06下", "url": "https://archiveofourown.org/works/75372201", "author": "TTSSttss", "author_url": "https://archiveofourown.org/users/TTSSttss/pseuds/TTSSttss", "fandoms": ["TF家族"], "date": "07 Dec 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "张桂源肯定自己正在被杨博文凝视、被杨博文需要、被杨博文当做欲望本身。", "words": 6312, "chapters": "1/1", "kudos": 12, "hits": 317, "bookmarks": 0, "comments": 2, "ratio": 3.79}, {"work_id": "75382761", "title": "【杨桂】嘘", "url": "https://archiveofourown.org/works/75382761", "author": "Stmmio", "author_url": "https://archiveofourown.org/users/Stmmio/pseuds/Stmmio", "fandoms": ["TF家族"], "date": "07 Dec 2025", "rating": "Explicit", "category": "M/M", "complete": "Complete Work", "relationships": ["杨博文/张桂源", "杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "争吵，做爱，然后和好的故事。默认成年虽然很想写点情感但是几乎都在开车（）。。。", "words": 5936, "chapters": "1/1", "kudos": 40, "hits": 2087, "bookmarks": 0, "comments": 4, "ratio": 1.92}, {"work_id": "75627636", "title": "【杨桂】姐姐", "url": "https://archiveofourown.org/works/75627636", "author": "Viky_zhou", "author_url": "https://archiveofourown.org/users/Viky_zhou/pseuds/Viky_zhou", "fandoms": ["杨桂 - Fandom", "天文望源镜 - Fandom"], "date": "12 Dec 2025", "rating": "Not Rated", "category": "F/M, M/M", "complete": "Complete Work", "relationships": ["杨博文/张桂源", "杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "", "words": 9483, "chapters": "1/1", "kudos": 20, "hits": 1171, "bookmarks": 0, "comments": 2, "ratio": 1.71}, {"work_id": "75689136", "title": "【杨桂】甜腻的硝烟", "url": "https://archiveofourown.org/works/75689136", "author": "Anonymous", "author_url": "", "fandoms": ["TF家族"], "date": "13 Dec 2025", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["杨博文/张桂源", "杨桂", "天文望源镜"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "张桂源说要当攻，杨博文说可以。", "words": 6690, "chapters": "1/1", "kudos": 38, "hits": 1025, "bookmarks": 2, "comments": 14, "ratio": 3.71}, {"work_id": "75866871", "title": "谁在长夜里很重地呼吸", "url": "https://archiveofourown.org/works/75866871", "author": "TTSSttss", "author_url": "https://archiveofourown.org/users/TTSSttss/pseuds/TTSSttss", "fandoms": ["TF家族"], "date": "16 Dec 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨博文/张桂源", "杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "张桂源无法埋怨、批判杨博文的坏，因为这份坏有些仅他可见。杨博文的坏像一个属于他们的秘密，一个告诉其他人，也很少会有人相信的秘密。故而张桂源缓缓地将这解读为某种意义上的好。有些特别的好。这让他每每面对杨博文时，心态从怎么可以这样，变成了，好吧好吧。", "words": 7530, "chapters": "1/1", "kudos": 27, "hits": 321, "bookmarks": 2, "comments": 1, "ratio": 8.41}, {"work_id": "75867016", "title": "他的裙摆", "url": "https://archiveofourown.org/works/75867016", "author": "TTSSttss", "author_url": "https://archiveofourown.org/users/TTSSttss/pseuds/TTSSttss", "fandoms": ["TF家族"], "date": "16 Dec 2025", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨博文/张桂源", "杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": ["攻着女装", "性爱录像"], "summary": "", "words": 4109, "chapters": "1/1", "kudos": 13, "hits": 553, "bookmarks": 0, "comments": 2, "ratio": 2.35}, {"work_id": "75935361", "title": "酸菜血肠", "url": "https://archiveofourown.org/works/75935361", "author": "Kissmemoon", "author_url": "https://archiveofourown.org/users/Kissmemoon/pseuds/Kissmemoon", "fandoms": ["TF家族四代"], "date": "17 Dec 2025", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["ack - Relationship", "文奇", "杨桂", "杰文 - Relationship"], "characters": ["杨博文", "王橹杰", "左奇函", "张桂源"], "freeforms": [], "summary": "吸血鬼au1文杰2帝美3接吻4杨桂纯享版，有公有嬷慎入慎入慎入", "words": 5644, "chapters": "1/1", "kudos": 14, "hits": 394, "bookmarks": 0, "comments": 5, "ratio": 3.55}, {"work_id": "77262111", "title": "安检爱上保安", "url": "https://archiveofourown.org/works/77262111", "author": "Kissmemoon", "author_url": "https://archiveofourown.org/users/Kissmemoon/pseuds/Kissmemoon", "fandoms": ["TF家族四代"], "date": "07 Jan 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["文铭", "杨桂"], "characters": ["杨博文", "陈浚铭", "张桂源"], "freeforms": ["Threesome - M/M/M"], "summary": "文铭杨桂3p，兄弟俩好到吃一根鸡巴", "words": 4662, "chapters": "1/1", "kudos": 10, "hits": 858, "bookmarks": 0, "comments": 2, "ratio": 1.17}, {"work_id": "77499121", "title": "【杨桂】只要你要", "url": "https://archiveofourown.org/works/77499121", "author": "Zzzyt", "author_url": "https://archiveofourown.org/users/Zzzyt/pseuds/Zzzyt", "fandoms": ["TF家族"], "date": "11 Jan 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "杨博文/张桂源"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "他是我的，他的唇舌、他的呼吸、他的身体、他的灵魂，那些踽踽独行的不曾参与过的年月姑且不算，但现在的每分每刻，未来直至死亡的每一次心跳搏动，都是我的。", "words": 8932, "chapters": "1/1", "kudos": 16, "hits": 517, "bookmarks": 0, "comments": 1, "ratio": 3.09}, {"work_id": "77558411", "title": "Save the School/拯救校园", "url": "https://archiveofourown.org/works/77558411", "author": "SEnseRYuki", "author_url": "https://archiveofourown.org/users/SEnseRYuki/pseuds/SEnseRYuki", "fandoms": ["TF家族"], "date": "12 Jan 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["文恒", "杨桂"], "characters": ["杨博文", "陈奕恒", "张桂源"], "freeforms": [], "summary": "“别激动，别激动，杨博文，主要是，我想问很久了，说实话其实你是robot?android?AI?”“啊？你说什么。”“如果你是，你答应我离开这座学校。你主人？制造者？whatever，反正就是他们给你设定的程序目标正在毁了这座校园，好吗。”", "words": 14561, "chapters": "5/5", "kudos": 6, "hits": 113, "bookmarks": 1, "comments": 4, "ratio": 5.31}, {"work_id": "77641571", "title": "【杨桂/桂文 无差】剑", "url": "https://archiveofourown.org/works/77641571", "author": "deMelK", "author_url": "https://archiveofourown.org/users/deMelK/pseuds/deMelK", "fandoms": ["TF家族"], "date": "13 Jan 2026", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "桂文", "天文望源镜", "张桂源/杨博文"], "characters": ["张桂源", "杨博文"], "freeforms": [], "summary": "走吧，哥哥。", "words": 1710, "chapters": "1/1", "kudos": 5, "hits": 519, "bookmarks": 0, "comments": 0, "ratio": 0.96}, {"work_id": "77996581", "title": "【杨桂】共享体温", "url": "https://archiveofourown.org/works/77996581", "author": "ghkhvfj", "author_url": "https://archiveofourown.org/users/ghkhvfj/pseuds/ghkhvfj", "fandoms": ["杨桂 - Fandom"], "date": "20 Jan 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["杨博文/张桂源", "杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": ["Sex", "后入", "传教士", "内射", "Sweet Talk"], "summary": "现背｜🔞｜厚乳*传教士*中出*sweet talk｜杨桂｜杨博文vs张桂源（顺序有意义）全文1w1 将近2/3都在doi“张桂源儿。”“呼……嗯？”“好奇怪。”杨博文在那双性感的圆唇上亲了一下，“做都做了，怎么你亲嘴儿还是这么放不开？”他虽然是在问张桂源，但又很像是在自言自语，语气之认真，张桂源都不知道该怎么回，因为……他确实，只有接吻放不开。", "words": 9546, "chapters": "1/1", "kudos": 34, "hits": 1039, "bookmarks": 1, "comments": 0, "ratio": 3.27}, {"work_id": "78291051", "title": "爱河", "url": "https://archiveofourown.org/works/78291051", "author": "BaozouHoney", "author_url": "https://archiveofourown.org/users/BaozouHoney/pseuds/BaozouHoney", "fandoms": ["TFBOYS (Band)"], "date": "25 Jan 2026", "rating": "Teen And Up Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["铭罕", "杨桂", "陈浚铭/陈思罕", "杨博文/张桂源", "TF family - Relationship"], "characters": ["陈浚铭", "陈思罕", "杨博文", "张桂源"], "freeforms": [], "summary": "主铭罕 微量杨桂 铭罕oe1.4w+叉子和蛋糕设定ooc预警 杨桂双死预警 微血腥无🚗请勿上升", "words": 12521, "chapters": "1/1", "kudos": 5, "hits": 182, "bookmarks": 0, "comments": 0, "ratio": 2.75}, {"work_id": "78796251", "title": "羊身蛇心事", "url": "https://archiveofourown.org/works/78796251", "author": "cameliasea", "author_url": "https://archiveofourown.org/users/cameliasea/pseuds/cameliasea", "fandoms": ["TF家族"], "date": "02 Feb 2026", "rating": "Explicit", "category": "F/F", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": ["双性转"], "summary": "含一点文奇gb，纯粹为了吃逼而写的类pwpaka谁是直女「那你想要变成坏小孩吗？」张桂圆问她，像罐头台词。杨波纹盯着她：「你要教我吗？」可是我也不是坏小孩。张桂圆咽了一下口水，把这句真心话也吞掉。点了点头。", "words": 2235, "chapters": "1/1", "kudos": 6, "hits": 205, "bookmarks": 0, "comments": 0, "ratio": 2.93}, {"work_id": "79174656", "title": "终于拥有这一夜（上）", "url": "https://archiveofourown.org/works/79174656", "author": "TTSSttss", "author_url": "https://archiveofourown.org/users/TTSSttss/pseuds/TTSSttss", "fandoms": ["TF家族"], "date": "09 Feb 2026", "rating": "Teen And Up Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "", "words": 4956, "chapters": "1/1", "kudos": 2, "hits": 125, "bookmarks": 0, "comments": 0, "ratio": 1.6}, {"work_id": "79190936", "title": "【杨桂】我那死鬼老公爬出来了", "url": "https://archiveofourown.org/works/79190936", "author": "ccci", "author_url": "https://archiveofourown.org/users/ccci/pseuds/ccci", "fandoms": ["TF家族四代"], "date": "09 Feb 2026", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "tf家族四代 - Relationship"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "或许微恐（？）‖一点人鬼情未了的戏码全文共计9.1k字，感谢阅读！中元节特供（但延迟……）-你的眼泪好烫…-", "words": 6024, "chapters": "1/1", "kudos": 5, "hits": 115, "bookmarks": 0, "comments": 0, "ratio": 4.35}, {"work_id": "79230106", "title": "【杨桂】RETURN AGAIN", "url": "https://archiveofourown.org/works/79230106", "author": "ccci", "author_url": "https://archiveofourown.org/users/ccci/pseuds/ccci", "fandoms": ["TF家族四代"], "date": "18 Mar 2026", "rating": "Not Rated", "category": "M/M", "complete": "Work in Progress", "relationships": ["杨桂", "tf家族四代 - Relationship"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "ooc‖不打游戏不懂围棋，有错误可以指正‖一切设定只为剧情服务‖全是刻板印象-电竞游戏选手×年轻围棋世冠-", "words": 10416, "chapters": "3/?", "kudos": 8, "hits": 152, "bookmarks": 0, "comments": 4, "ratio": 5.26}, {"work_id": "79230326", "title": "【杨桂】我掉了一颗乳牙", "url": "https://archiveofourown.org/works/79230326", "author": "ccci", "author_url": "https://archiveofourown.org/users/ccci/pseuds/ccci", "fandoms": ["TF家族四代"], "date": "10 Feb 2026", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "tf家族四代 - Relationship"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "ooc‖酸涩口‖少年真心有关信息都是编造的，不要较真好像有点流水账（？对不起、将就点吧全文共计9k+-杨博文收藏着一颗十七岁掉落的乳牙。", "words": 6278, "chapters": "1/1", "kudos": 6, "hits": 64, "bookmarks": 0, "comments": 1, "ratio": 9.38}, {"work_id": "79244921", "title": "终于拥有这一夜（全）", "url": "https://archiveofourown.org/works/79244921", "author": "TTSSttss", "author_url": "https://archiveofourown.org/users/TTSSttss/pseuds/TTSSttss", "fandoms": ["TF家族"], "date": "10 Feb 2026", "rating": "Teen And Up Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "", "words": 8347, "chapters": "1/1", "kudos": 10, "hits": 231, "bookmarks": 1, "comments": 1, "ratio": 4.33}, {"work_id": "79597521", "title": "潮湿的旺旺仙贝", "url": "https://archiveofourown.org/works/79597521", "author": "Kissmemoon", "author_url": "https://archiveofourown.org/users/Kissmemoon/pseuds/Kissmemoon", "fandoms": ["TF家族四代"], "date": "15 Feb 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "近海狂想pwp，赠小册张桂源双性慎入", "words": 2840, "chapters": "1/1", "kudos": 7, "hits": 232, "bookmarks": 0, "comments": 0, "ratio": 3.02}, {"work_id": "79716241", "title": "【杨桂】痴儿騃女", "url": "https://archiveofourown.org/works/79716241", "author": "realpearlbottle", "author_url": "https://archiveofourown.org/users/realpearlbottle/pseuds/realpearlbottle", "fandoms": ["TF家族四代"], "date": "17 Feb 2026", "rating": "Teen And Up Audiences", "category": "M/M", "complete": "Complete Work", "relationships": ["杨博文/张桂源", "杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": ["原创角色 - Freeform"], "summary": "不会下雪的城市，会下雪的北京，杨博文比他还小一岁，现在他在做什么呢？他在网页上搜索过杨博文的名字，和以前的区别只是更复杂、繁多的后缀和更恐怖的优秀成果。观音的仙童受了蛊惑，不影响他回到天宫去；都犯了贪嗔痴慢，只有人间的痴儿騃女，张桂源受了重罚。*非典型带球跑之攻带球，受跑的破镜重圆，请勿上升", "words": 14426, "chapters": "1/1", "kudos": 19, "hits": 213, "bookmarks": 1, "comments": 5, "ratio": 8.92}, {"work_id": "79860706", "title": "【杨桂】讨厌你喜欢你", "url": "https://archiveofourown.org/works/79860706", "author": "Stmmio", "author_url": "https://archiveofourown.org/users/Stmmio/pseuds/Stmmio", "fandoms": ["TF家族"], "date": "19 Feb 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "杨博文/张桂源", "陈奕恒/左奇函"], "characters": ["张桂源", "杨博文", "陈奕恒", "左奇函"], "freeforms": [], "summary": "别讨厌我，记住我。高含量肘鸡", "words": 13516, "chapters": "1/1", "kudos": 15, "hits": 282, "bookmarks": 0, "comments": 5, "ratio": 5.32}, {"work_id": "80019166", "title": "桂文桂 | Live酒馆300秒【上】", "url": "https://archiveofourown.org/works/80019166", "author": "hxrr1cane", "author_url": "https://archiveofourown.org/users/hxrr1cane/pseuds/hxrr1cane", "fandoms": ["桂文桂 - Fandom"], "date": "28 Feb 2026", "rating": "Not Rated", "category": "M/M", "complete": "Work in Progress", "relationships": ["桂文桂", "桂文", "杨桂"], "characters": ["张桂源/杨博文 - Character"], "freeforms": [], "summary": "社畜杨博文在CBD附近的酒吧偶遇高中时期的前男友，呃不过他怎么也变成社畜了。*破镜重圆", "words": 9149, "chapters": "5/?", "kudos": 14, "hits": 262, "bookmarks": 1, "comments": 6, "ratio": 5.34}, {"work_id": "80180186", "title": "【杨桂/文奇】耳骨", "url": "https://archiveofourown.org/works/80180186", "author": "Selenomoon", "author_url": "https://archiveofourown.org/users/Selenomoon/pseuds/Selenomoon", "fandoms": ["时代峰峻"], "date": "24 Feb 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "文奇"], "characters": ["杨博文", "左奇函", "张桂源"], "freeforms": ["杨桂 - Freeform", "文奇 - Freeform", "杨all - Freeform", "文all - Freeform", "杨博文 - Freeform", "左奇函 - Freeform", "张桂源 - Freeform"], "summary": "一个游走在爱与掌控之间的三人故事", "words": 11378, "chapters": "1/1", "kudos": 4, "hits": 257, "bookmarks": 0, "comments": 0, "ratio": 1.56}, {"work_id": "80337206", "title": "【杨桂】如果称之为爱情的话", "url": "https://archiveofourown.org/works/80337206", "author": "Stmmio", "author_url": "https://archiveofourown.org/users/Stmmio/pseuds/Stmmio", "fandoms": ["TFBOYS (Band)"], "date": "27 Feb 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "杨博文/张桂源"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "现背小短打", "words": 2270, "chapters": "1/1", "kudos": 7, "hits": 92, "bookmarks": 0, "comments": 2, "ratio": 7.61}, {"work_id": "80337281", "title": "【杨桂】纹圆", "url": "https://archiveofourown.org/works/80337281", "author": "Stmmio", "author_url": "https://archiveofourown.org/users/Stmmio/pseuds/Stmmio", "fandoms": ["TFBOYS (Band)"], "date": "27 Feb 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂", "杨博文/张桂源"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "搬运一下，流水大纲文，聊天框产物纹身师✖️大学生", "words": 4884, "chapters": "1/1", "kudos": 8, "hits": 143, "bookmarks": 0, "comments": 2, "ratio": 5.59}, {"work_id": "80402156", "title": "鼠怨", "url": "https://archiveofourown.org/works/80402156", "author": "Anonymous", "author_url": "", "fandoms": ["TF家族"], "date": "15 Mar 2026", "rating": "Not Rated", "category": "F/F, F/M, M/M", "complete": "Work in Progress", "relationships": ["奇文", "杨桂", "极航", "铲棍 - Relationship", "奇橹 - Relationship", "左奇函&陈奕恒", "左奇函/张奕然", "陈奕恒/张奕然", "官俊臣/张奕然"], "characters": ["左奇函", "杨博文", "陈浚铭", "陈奕恒", "王橹杰", "左航", "张极", "张奕然", "官俊臣"], "freeforms": ["乱炖"], "summary": "鼠家大院堕落史", "words": 20699, "chapters": "5/?", "kudos": 7, "hits": 500, "bookmarks": 0, "comments": 0, "ratio": 1.4}, {"work_id": "80851811", "title": "火炕新娘物语", "url": "https://archiveofourown.org/works/80851811", "author": "grapefruittttttt", "author_url": "https://archiveofourown.org/users/grapefruittttttt/pseuds/grapefruittttttt", "fandoms": ["TF家族", "TF四代"], "date": "08 Mar 2026", "rating": "Not Rated", "category": "M/M", "complete": "Complete Work", "relationships": ["文桂铭", "1017 - Relationship", "杨桂", "文铭", "杨桂铭"], "characters": ["杨博文", "张桂源", "陈浚铭"], "freeforms": [], "summary": "雪啊烤地瓜啊烫手烫嘴，杨博文吃一口烤地瓜，上牙膛烫起泡。", "words": 8089, "chapters": "1/1", "kudos": 2, "hits": 98, "bookmarks": 0, "comments": 0, "ratio": 2.04}, {"work_id": "80968296", "title": "初夜", "url": "https://archiveofourown.org/works/80968296", "author": "Zzzyt", "author_url": "https://archiveofourown.org/users/Zzzyt/pseuds/Zzzyt", "fandoms": ["TF家族"], "date": "10 Mar 2026", "rating": "Explicit", "category": "M/M", "complete": "Complete Work", "relationships": ["杨博文 - Relationship", "张桂源 - Relationship", "杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "杨桂初夜 随便写的吃吃", "words": 4561, "chapters": "1/1", "kudos": 3, "hits": 196, "bookmarks": 0, "comments": 0, "ratio": 1.53}, {"work_id": "81309411", "title": "【奇文/左奇函x周扬】 错行", "url": "https://archiveofourown.org/works/81309411", "author": "A_SleepSheep", "author_url": "https://archiveofourown.org/users/A_SleepSheep/pseuds/A_SleepSheep", "fandoms": ["TF家族", "TF家族四代"], "date": "16 Mar 2026", "rating": "Mature", "category": "M/M", "complete": "Work in Progress", "relationships": ["左奇函/杨博文", "聂玮辰/张奕然", "杨博文/张桂源", "陈奕恒/陈浚铭", "奇文", "聂然", "恒铭", "杨桂"], "characters": ["左奇函", "周扬", "聂玮辰", "张奕然", "杨博文", "张桂源", "陈奕恒", "王橹杰", "谢逸舟"], "freeforms": ["Angst", "NSFW"], "summary": "非典型奇文,替身文学,不接受也不能骂我,骂我我就哭主CP ：左奇函x周扬副CP ：聂玮辰x张奕然  陈奕恒x谢逸舟这两个会牵扯的多一些  其他可能会拓展：橹瑞 （但不一定另：杨博文x张桂源 这里不会提到很多,且基本无差介意可以慎入,这个部分的杨桂也只是为了满足我的恶趣味,毫无细节描写只为奇扬做嫁衣。周扬和杨博文是两个完全独立的个体,陈浚铭和谢逸舟也是,但目前不一定会有陈浚铭的出场,有可能只有谢逸舟。陈颂和陈思罕是同一个人所有提到的家长兄弟姐妹的名字都是我杜撰的。如有雷同，纯属巧合可能会提到四代其他小孩,但一定不会提到汪俊熙以外的下楼人员。（真不熟* 因为我少2并没有播出所以人物OOC也没办法。过几年如果播出后发现人设大相径庭,并不支持坐时光机回来出警我,但非要出警我也没办法", "words": 5888, "chapters": "1/?", "kudos": 2, "hits": 79, "bookmarks": 1, "comments": 0, "ratio": 2.53}, {"work_id": "81371426", "title": "恶人自有恶人操", "url": "https://archiveofourown.org/works/81371426", "author": "Bohzz", "author_url": "https://archiveofourown.org/users/Bohzz/pseuds/Bohzz", "fandoms": ["Original Work"], "date": "17 Mar 2026", "rating": "Not Rated", "category": "M/M", "complete": "Work in Progress", "relationships": ["杨桂"], "characters": ["杨博文/张桂源 - Character"], "freeforms": ["Angry Sex", "s1m0", "口交", "强制爱", "未成年人性行为", "惩罚", "失禁", "抱操"], "summary": "", "words": 2869, "chapters": "1/?", "kudos": 3, "hits": 101, "bookmarks": 0, "comments": 0, "ratio": 2.97}, {"work_id": "81415831", "title": "冷香焚木", "url": "https://archiveofourown.org/works/81415831", "author": "Dr_201199", "author_url": "https://archiveofourown.org/users/Dr_201199/pseuds/Dr_201199", "fandoms": ["TF家族四代"], "date": "18 Mar 2026", "rating": "Explicit", "category": "F/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "-ABO GB 左位性转 伪骨科-恋哥清冷闷骚妹×宠妹回避直男哥-7、10、11有限制级内容请谨慎观看", "words": 24477, "chapters": "1/1", "kudos": 4, "hits": 69, "bookmarks": 0, "comments": 0, "ratio": 5.8}, {"work_id": "81430796", "title": "只忘记你怎么不算一种只记住你", "url": "https://archiveofourown.org/works/81430796", "author": "Nosheepisbaddd", "author_url": "https://archiveofourown.org/users/Nosheepisbaddd/pseuds/Nosheepisbaddd", "fandoms": ["杨桂 - Fandom"], "date": "18 Mar 2026", "rating": "General Audiences", "category": "M/M", "complete": "Work in Progress", "relationships": ["杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "没转正前打炮撞头失忆后记得全世界只忘记我是什么意思", "words": 2245, "chapters": "1/?", "kudos": 5, "hits": 60, "bookmarks": 1, "comments": 0, "ratio": 8.33}, {"work_id": "81591856", "title": "涨潮之前在退潮之后", "url": "https://archiveofourown.org/works/81591856", "author": "Nosheepisbaddd", "author_url": "https://archiveofourown.org/users/Nosheepisbaddd/pseuds/Nosheepisbaddd", "fandoms": ["杨桂 - Fandom"], "date": "21 Mar 2026", "rating": "Mature", "category": "M/M", "complete": "Complete Work", "relationships": ["杨桂"], "characters": ["杨博文", "张桂源"], "freeforms": [], "summary": "未成年生怀流科教片之不带套是感情最大的敌人", "words": 7070, "chapters": "1/1", "kudos": 3, "hits": 99, "bookmarks": 0, "comments": 0, "ratio": 3.03}, {"work_id": "81714681", "title": "【桂文桂】讨厌的她", "url": "https://archiveofourown.org/works/81714681", "author": "mmaroon030", "author_url": "https://archiveofourown.org/users/mmaroon030/pseuds/mmaroon030", "fandoms": ["TFBOYS (Band)"], "date": "23 Mar 2026", "rating": "Not Rated", "category": "F/F", "complete": "Complete Work", "relationships": ["桂文", "桂文桂", "杨桂"], "characters": ["张桂源", "杨博文"], "freeforms": ["未成年性行为", "扇逼", "手淫", "失禁", "dirtytalk", "双性转", "百合", "互攻"], "summary": "白切黑妹×见义勇为小狗姐注意避雷：双性转/未成年性行为/手淫/失禁/扇逼/Dirtytalk/互攻", "words": 3805, "chapters": "1/1", "kudos": 4, "hits": 123, "bookmarks": 0, "comments": 0, "ratio": 3.25}];
+
+let currentSort = "ratio";
+let currentSearch = "";
+let activeFilters = new Set();
+
+function formatNumber(n) {
+  return n.toLocaleString();
+}
+
+function getSearchText(w) {
+  return [
+    w.title, w.author, w.summary,
+    ...w.fandoms, ...w.relationships,
+    ...w.characters, ...w.freeforms
+  ].join(" ").toLowerCase();
+}
+
+// Parse date for sorting
+function parseDate(dateStr) {
+  const months = {
+    'Jan':0,'Feb':1,'Mar':2,'Apr':3,'May':4,'Jun':5,
+    'Jul':6,'Aug':7,'Sep':8,'Oct':9,'Nov':10,'Dec':11
+  };
+  const parts = dateStr.split(" ");
+  if (parts.length === 3) {
+    return new Date(parseInt(parts[2]), months[parts[1]] || 0, parseInt(parts[0]));
+  }
+  return new Date(dateStr);
+}
+
+function filterAndSort() {
+  let works = ALL_WORKS.filter(w => w.kudos > 0);
+
+  // Search
+  if (currentSearch) {
+    const q = currentSearch.toLowerCase();
+    works = works.filter(w => getSearchText(w).includes(q));
+  }
+
+  // Filters
+  if (activeFilters.has("complete")) {
+    works = works.filter(w => w.complete === "Complete Work");
+  }
+  if (activeFilters.has("long")) {
+    works = works.filter(w => w.words >= 10000);
+  }
+  if (activeFilters.has("short")) {
+    works = works.filter(w => w.words < 5000);
+  }
+
+  // Kudos minimum
+  const kudosMin = parseInt(document.getElementById("kudosMin").value) || 0;
+  if (kudosMin > 0) {
+    works = works.filter(w => w.kudos >= kudosMin);
+  }
+
+  // Sort
+  works.sort((a, b) => {
+    switch (currentSort) {
+      case "ratio": return b.ratio - a.ratio;
+      case "kudos": return b.kudos - a.kudos;
+      case "hits": return b.hits - a.hits;
+      case "words": return b.words - a.words;
+      case "date": return parseDate(b.date) - parseDate(a.date);
+      default: return 0;
+    }
+  });
+
+  return works;
+}
+
+function renderWorks() {
+  const works = filterAndSort();
+  const list = document.getElementById("workList");
+  const countEl = document.getElementById("countDisplay");
+
+  countEl.textContent = `显示 ${works.length} 篇作品（共 ${ALL_WORKS.length} 篇，过滤掉 ${ALL_WORKS.length - works.length} 篇无kudos/不符合条件的作品）`;
+
+  if (works.length === 0) {
+    list.innerHTML = '<div class="no-results">没有找到符合条件的作品</div>';
+    return;
+  }
+
+  list.innerHTML = works.map((w, i) => {
+    const rank = i + 1;
+    const rankClass = rank <= 3 ? "top3" : "";
+    const ratioClass = w.ratio >= 5 ? "high" : "";
+
+    const relTags = w.relationships.map(t =>
+      `<span class="tag rel">${escapeHtml(t)}</span>`
+    ).join("");
+    const ffTags = w.freeforms.slice(0, 5).map(t =>
+      `<span class="tag">${escapeHtml(t)}</span>`
+    ).join("");
+
+    return `
+      <div class="work-card">
+        <div class="rank ${rankClass}">#${rank}</div>
+        <div class="work-title">
+          <a href="${w.url}" target="_blank" rel="noopener">${escapeHtml(w.title)}</a>
+        </div>
+        <div class="work-author">
+          by <a href="${w.author_url}" target="_blank" rel="noopener">${escapeHtml(w.author)}</a>
+        </div>
+        ${(relTags || ffTags) ? `<div class="work-tags">${relTags}${ffTags}</div>` : ""}
+        ${w.summary ? `<div class="work-summary">${escapeHtml(w.summary)}</div>` : ""}
+        <div class="work-meta">
+          <span class="ratio-badge ${ratioClass}">${w.ratio}%</span>
+          <span class="meta-item"><span class="label">❤️</span><span class="value">${formatNumber(w.kudos)}</span></span>
+          <span class="meta-item"><span class="label">👁</span><span class="value">${formatNumber(w.hits)}</span></span>
+          <span class="meta-item"><span class="label">字</span><span class="value">${formatNumber(w.words)}</span></span>
+          <span class="meta-item"><span class="label">章</span><span class="value">${w.chapters}</span></span>
+          ${w.bookmarks ? `<span class="meta-item"><span class="label">🔖</span><span class="value">${formatNumber(w.bookmarks)}</span></span>` : ""}
+          ${w.complete === "Complete Work" ? '<span class="meta-item" style="color:var(--green)">✓ 完结</span>' : '<span class="meta-item" style="color:var(--accent)">◌ 连载中</span>'}
+        </div>
+        <div class="work-date">${w.date}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function updateStats() {
+  const valid = ALL_WORKS.filter(w => w.kudos > 0);
+  const avgRatio = valid.length > 0
+    ? (valid.reduce((s, w) => s + w.ratio, 0) / valid.length).toFixed(2)
+    : 0;
+  const totalKudos = ALL_WORKS.reduce((s, w) => s + w.kudos, 0);
+  const totalWords = ALL_WORKS.reduce((s, w) => s + w.words, 0);
+
+  document.getElementById("statsBar").innerHTML = `
+    <span>总计 <strong>${ALL_WORKS.length}</strong> 篇</span>
+    <span>平均比率 <strong>${avgRatio}%</strong></span>
+    <span>总Kudos <strong>${formatNumber(totalKudos)}</strong></span>
+    <span>总字数 <strong>${formatNumber(totalWords)}</strong></span>
+  `;
+}
+
+// Events
+document.getElementById("searchBox").addEventListener("input", (e) => {
+  currentSearch = e.target.value;
+  renderWorks();
+});
+
+document.getElementById("kudosMin").addEventListener("input", () => {
+  renderWorks();
+});
+
+document.getElementById("sortBtns").addEventListener("click", (e) => {
+  const btn = e.target.closest(".sort-btn");
+  if (!btn) return;
+  document.querySelectorAll(".sort-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  currentSort = btn.dataset.sort;
+  renderWorks();
+});
+
+document.getElementById("filterRow").addEventListener("click", (e) => {
+  const chip = e.target.closest(".filter-chip");
+  if (!chip) return;
+  const f = chip.dataset.filter;
+  if (activeFilters.has(f)) {
+    activeFilters.delete(f);
+    chip.classList.remove("active");
+  } else {
+    // "long" and "short" are mutually exclusive
+    if (f === "long" && activeFilters.has("short")) {
+      activeFilters.delete("short");
+      document.querySelector('[data-filter="short"]').classList.remove("active");
+    }
+    if (f === "short" && activeFilters.has("long")) {
+      activeFilters.delete("long");
+      document.querySelector('[data-filter="long"]').classList.remove("active");
+    }
+    activeFilters.add(f);
+    chip.classList.add("active");
+  }
+  renderWorks();
+});
+
+// Init
+updateStats();
+renderWorks();
+</script>
+</body>
+</html>
