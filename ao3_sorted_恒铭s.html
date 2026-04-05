@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AO3 Sorter · 恒铭s</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf8f5;
+    --bg-card: #ffffff;
+    --text: #2c2c2c;
+    --text-dim: #7a7672;
+    --text-light: #a8a4a0;
+    --accent: #c45d3e;
+    --accent-soft: #e8a690;
+    --accent-bg: #fdf0ec;
+    --border: #e8e4df;
+    --border-light: #f0ece8;
+    --green: #4a8c6f;
+    --green-bg: #edf5f0;
+    --blue: #4a7a9b;
+    --blue-bg: #edf3f7;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+    --shadow-hover: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05);
+    --radius: 10px;
+    --font-serif: 'Noto Serif SC', 'Songti SC', serif;
+    --font-mono: 'JetBrains Mono', 'Menlo', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-serif);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* Header */
+  .page-header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+  }
+
+  .page-header h1 span {
+    color: var(--accent);
+  }
+
+  .page-header .subtitle {
+    color: var(--text-dim);
+    font-size: 15px;
+  }
+
+  .page-header .stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-top: 20px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .page-header .stats-bar strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 32px;
+    align-items: center;
+  }
+
+  .search-box {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--font-serif);
+    font-size: 14px;
+    background: var(--bg-card);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box:focus {
+    border-color: var(--accent-soft);
+  }
+
+  .sort-btns {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 3px;
+  }
+
+  .sort-btn {
+    padding: 7px 14px;
+    border: none;
+    background: transparent;
+    border-radius: 7px;
+    font-family: var(--font-serif);
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .sort-btn:hover {
+    color: var(--text);
+  }
+
+  .sort-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .filter-chip {
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-family: var(--font-serif);
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    background: var(--bg-card);
+    transition: all 0.2s;
+  }
+
+  .filter-chip:hover {
+    border-color: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .filter-chip.active {
+    background: var(--accent-bg);
+    border-color: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .kudos-min-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--bg-card);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .kudos-min-wrap label {
+    white-space: nowrap;
+    font-family: var(--font-mono);
+  }
+
+  .kudos-min-wrap input {
+    width: 56px;
+    border: none;
+    outline: none;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+    background: transparent;
+    text-align: center;
+  }
+
+  .kudos-min-wrap:focus-within {
+    border-color: var(--accent-soft);
+  }
+
+  /* Work cards */
+  .work-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .work-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.25s, transform 0.25s;
+    position: relative;
+  }
+
+  .work-card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-1px);
+  }
+
+  .work-card .rank {
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    background: var(--accent);
+    color: white;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 2px 10px;
+    border-radius: 12px;
+  }
+
+  .work-card .rank.top3 {
+    background: linear-gradient(135deg, #c45d3e, #d4845a);
+    font-size: 13px;
+    padding: 3px 12px;
+  }
+
+  .work-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .work-title a {
+    color: var(--text);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .work-title a:hover {
+    color: var(--accent);
+  }
+
+  .work-author {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .work-author a {
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+
+  .work-author a:hover {
+    color: var(--accent);
+  }
+
+  .work-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .work-tags .tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--border-light);
+    color: var(--text-dim);
+  }
+
+  .work-tags .tag.rel {
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+
+  .work-summary {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.8;
+    margin-bottom: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .work-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-light);
+    align-items: center;
+  }
+
+  .work-meta .ratio-badge {
+    background: var(--green-bg);
+    color: var(--green);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 13px;
+  }
+
+  .work-meta .ratio-badge.high {
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+
+  .work-meta .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .work-meta .meta-item .label {
+    color: var(--text-light);
+  }
+
+  .work-meta .meta-item .value {
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .work-date {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 10px;
+  }
+
+  /* No results */
+  .no-results {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+    font-size: 15px;
+  }
+
+  .count-display {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 16px;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .container { padding: 24px 16px 60px; }
+    .page-header h1 { font-size: 22px; }
+    .work-card { padding: 18px; }
+    .work-title { font-size: 16px; }
+    .controls { flex-direction: column; }
+    .page-header .stats-bar { flex-wrap: wrap; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="page-header">
+    <h1>📖 <span>恒铭s</span></h1>
+    <div class="subtitle">按 Kudos/Hits 比排序 · 数据来自 AO3</div>
+    <div class="stats-bar" id="statsBar"></div>
+  </div>
+
+  <div class="controls">
+    <input type="text" class="search-box" id="searchBox"
+           placeholder="搜索标题、作者、标签、简介…">
+    <div class="sort-btns" id="sortBtns">
+      <button class="sort-btn active" data-sort="ratio">比率 ↓</button>
+      <button class="sort-btn" data-sort="kudos">Kudos ↓</button>
+      <button class="sort-btn" data-sort="hits">Hits ↓</button>
+      <button class="sort-btn" data-sort="words">字数 ↓</button>
+      <button class="sort-btn" data-sort="date">最新</button>
+    </div>
+    <div class="filter-row" id="filterRow">
+      <button class="filter-chip" data-filter="complete">仅完结</button>
+      <button class="filter-chip" data-filter="long">长篇(>10k)</button>
+      <button class="filter-chip" data-filter="short">短篇(<5k)</button>
+      <span class="kudos-min-wrap">
+        <label for="kudosMin">Kudos ≥</label>
+        <input type="number" id="kudosMin" min="0" value="0" step="5">
+      </span>
+    </div>
+  </div>
+
+  <div class="count-display" id="countDisplay"></div>
+  <div class="work-list" id="workList"></div>
+</div>
+
+<script>
+const ALL_WORKS = [];
+
+let currentSort = "ratio";
+let currentSearch = "";
+let activeFilters = new Set();
+
+function formatNumber(n) {
+  return n.toLocaleString();
+}
+
+function getSearchText(w) {
+  return [
+    w.title, w.author, w.summary,
+    ...w.fandoms, ...w.relationships,
+    ...w.characters, ...w.freeforms
+  ].join(" ").toLowerCase();
+}
+
+// Parse date for sorting
+function parseDate(dateStr) {
+  const months = {
+    'Jan':0,'Feb':1,'Mar':2,'Apr':3,'May':4,'Jun':5,
+    'Jul':6,'Aug':7,'Sep':8,'Oct':9,'Nov':10,'Dec':11
+  };
+  const parts = dateStr.split(" ");
+  if (parts.length === 3) {
+    return new Date(parseInt(parts[2]), months[parts[1]] || 0, parseInt(parts[0]));
+  }
+  return new Date(dateStr);
+}
+
+function filterAndSort() {
+  let works = ALL_WORKS.filter(w => w.kudos > 0);
+
+  // Search
+  if (currentSearch) {
+    const q = currentSearch.toLowerCase();
+    works = works.filter(w => getSearchText(w).includes(q));
+  }
+
+  // Filters
+  if (activeFilters.has("complete")) {
+    works = works.filter(w => w.complete === "Complete Work");
+  }
+  if (activeFilters.has("long")) {
+    works = works.filter(w => w.words >= 10000);
+  }
+  if (activeFilters.has("short")) {
+    works = works.filter(w => w.words < 5000);
+  }
+
+  // Kudos minimum
+  const kudosMin = parseInt(document.getElementById("kudosMin").value) || 0;
+  if (kudosMin > 0) {
+    works = works.filter(w => w.kudos >= kudosMin);
+  }
+
+  // Sort
+  works.sort((a, b) => {
+    switch (currentSort) {
+      case "ratio": return b.ratio - a.ratio;
+      case "kudos": return b.kudos - a.kudos;
+      case "hits": return b.hits - a.hits;
+      case "words": return b.words - a.words;
+      case "date": return parseDate(b.date) - parseDate(a.date);
+      default: return 0;
+    }
+  });
+
+  return works;
+}
+
+function renderWorks() {
+  const works = filterAndSort();
+  const list = document.getElementById("workList");
+  const countEl = document.getElementById("countDisplay");
+
+  countEl.textContent = `显示 ${works.length} 篇作品（共 ${ALL_WORKS.length} 篇，过滤掉 ${ALL_WORKS.length - works.length} 篇无kudos/不符合条件的作品）`;
+
+  if (works.length === 0) {
+    list.innerHTML = '<div class="no-results">没有找到符合条件的作品</div>';
+    return;
+  }
+
+  list.innerHTML = works.map((w, i) => {
+    const rank = i + 1;
+    const rankClass = rank <= 3 ? "top3" : "";
+    const ratioClass = w.ratio >= 5 ? "high" : "";
+
+    const relTags = w.relationships.map(t =>
+      `<span class="tag rel">${escapeHtml(t)}</span>`
+    ).join("");
+    const ffTags = w.freeforms.slice(0, 5).map(t =>
+      `<span class="tag">${escapeHtml(t)}</span>`
+    ).join("");
+
+    return `
+      <div class="work-card">
+        <div class="rank ${rankClass}">#${rank}</div>
+        <div class="work-title">
+          <a href="${w.url}" target="_blank" rel="noopener">${escapeHtml(w.title)}</a>
+        </div>
+        <div class="work-author">
+          by <a href="${w.author_url}" target="_blank" rel="noopener">${escapeHtml(w.author)}</a>
+        </div>
+        ${(relTags || ffTags) ? `<div class="work-tags">${relTags}${ffTags}</div>` : ""}
+        ${w.summary ? `<div class="work-summary">${escapeHtml(w.summary)}</div>` : ""}
+        <div class="work-meta">
+          <span class="ratio-badge ${ratioClass}">${w.ratio}%</span>
+          <span class="meta-item"><span class="label">❤️</span><span class="value">${formatNumber(w.kudos)}</span></span>
+          <span class="meta-item"><span class="label">👁</span><span class="value">${formatNumber(w.hits)}</span></span>
+          <span class="meta-item"><span class="label">字</span><span class="value">${formatNumber(w.words)}</span></span>
+          <span class="meta-item"><span class="label">章</span><span class="value">${w.chapters}</span></span>
+          ${w.bookmarks ? `<span class="meta-item"><span class="label">🔖</span><span class="value">${formatNumber(w.bookmarks)}</span></span>` : ""}
+          ${w.complete === "Complete Work" ? '<span class="meta-item" style="color:var(--green)">✓ 完结</span>' : '<span class="meta-item" style="color:var(--accent)">◌ 连载中</span>'}
+        </div>
+        <div class="work-date">${w.date}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function updateStats() {
+  const valid = ALL_WORKS.filter(w => w.kudos > 0);
+  const avgRatio = valid.length > 0
+    ? (valid.reduce((s, w) => s + w.ratio, 0) / valid.length).toFixed(2)
+    : 0;
+  const totalKudos = ALL_WORKS.reduce((s, w) => s + w.kudos, 0);
+  const totalWords = ALL_WORKS.reduce((s, w) => s + w.words, 0);
+
+  document.getElementById("statsBar").innerHTML = `
+    <span>总计 <strong>${ALL_WORKS.length}</strong> 篇</span>
+    <span>平均比率 <strong>${avgRatio}%</strong></span>
+    <span>总Kudos <strong>${formatNumber(totalKudos)}</strong></span>
+    <span>总字数 <strong>${formatNumber(totalWords)}</strong></span>
+  `;
+}
+
+// Events
+document.getElementById("searchBox").addEventListener("input", (e) => {
+  currentSearch = e.target.value;
+  renderWorks();
+});
+
+document.getElementById("kudosMin").addEventListener("input", () => {
+  renderWorks();
+});
+
+document.getElementById("sortBtns").addEventListener("click", (e) => {
+  const btn = e.target.closest(".sort-btn");
+  if (!btn) return;
+  document.querySelectorAll(".sort-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  currentSort = btn.dataset.sort;
+  renderWorks();
+});
+
+document.getElementById("filterRow").addEventListener("click", (e) => {
+  const chip = e.target.closest(".filter-chip");
+  if (!chip) return;
+  const f = chip.dataset.filter;
+  if (activeFilters.has(f)) {
+    activeFilters.delete(f);
+    chip.classList.remove("active");
+  } else {
+    // "long" and "short" are mutually exclusive
+    if (f === "long" && activeFilters.has("short")) {
+      activeFilters.delete("short");
+      document.querySelector('[data-filter="short"]').classList.remove("active");
+    }
+    if (f === "short" && activeFilters.has("long")) {
+      activeFilters.delete("long");
+      document.querySelector('[data-filter="long"]').classList.remove("active");
+    }
+    activeFilters.add(f);
+    chip.classList.add("active");
+  }
+  renderWorks();
+});
+
+// Init
+updateStats();
+renderWorks();
+</script>
+</body>
+</html>
